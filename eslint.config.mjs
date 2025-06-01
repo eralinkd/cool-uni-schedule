@@ -13,9 +13,10 @@ export default createConfigForNuxt({
   languageOptions: {
     globals: {
       // Nuxt auto-imports
+      defineNuxtConfig: 'readonly',
       useRuntimeConfig: 'readonly',
       navigateTo: 'readonly',
-      defineNuxtConfig: 'readonly',
+      defineAppConfig: 'readonly',
       defineNuxtPlugin: 'readonly',
       defineNuxtRouteMiddleware: 'readonly',
       definePageMeta: 'readonly',
@@ -41,6 +42,7 @@ export default createConfigForNuxt({
       watch: 'readonly',
       watchEffect: 'readonly',
       onMounted: 'readonly',
+      onBeforeUnmount: 'readonly',
       onUnmounted: 'readonly',
       nextTick: 'readonly'
     }
@@ -84,7 +86,7 @@ export default createConfigForNuxt({
       ignoreStrings: true,
       ignoreTemplateLiterals: true,
       ignoreRegExpLiterals: true,
-      ignorePattern: '(class|className)="[^"]*"|<\\w+[^>]*class="[^"]*"[^>]*>'
+      ignorePattern: '(class|className)="[^"]*"|<\\w+[^>]*class="[^"]*"[^>]*>|class=".*"|className=".*"'
     }],
 
     // Vue template formatting
@@ -124,7 +126,7 @@ export default createConfigForNuxt({
       ignoreUrls: true,
       ignoreStrings: true,
       ignoreTemplateLiterals: true,
-      ignoreHTMLAttributeValues: false,
+      ignoreHTMLAttributeValues: true,
       ignoreHTMLTextContents: true
     }]
   }

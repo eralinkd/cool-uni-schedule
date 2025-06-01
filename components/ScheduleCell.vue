@@ -1,0 +1,283 @@
+<template>
+  <td
+    ref="cellRef"
+    class="border-r border-gray-200 p-1 align-top min-w-32 h-20 cursor-pointer
+           hover:bg-blue-50 focus:bg-blue-50 relative group select-none"
+    :class="{
+      'bg-blue-100': isSelected,
+      'bg-green-50': hasLesson,
+      'bg-blue-200': isDragSelected,
+      'cursor-crosshair': dragSelection && dragSelection.isSelecting.value,
+    }"
+    tabindex="0"
+    @mousedown="handleMouseDown"
+    @mouseenter="handleMouseEnter"
+    @click="handleCellClick"
+    @dblclick="handleDoubleClick"
+    @contextmenu="handleRightClick"
+  >
+    <!-- Содержимое урока -->
+    <div v-if="lessonData" class="text-xs space-y-1 pointer-events-none">
+      <!-- Предмет -->
+      <div class="font-medium text-gray-900 leading-tight">
+        {{ lessonData.subject }}
+      </div>
+
+      <!-- Преподаватель -->
+      <div class="text-gray-700 leading-tight">
+        {{ lessonData.professor }}
+      </div>
+
+      <!-- Дополнительная информация -->
+      <div class="flex flex-col space-y-0.5">
+        <!-- Платформа/ссылка -->
+        <div v-if="lessonData.platform" class="text-blue-600 underline">
+          {{ lessonData.platform }}
+        </div>
+
+        <!-- Аудитория -->
+        <div v-if="lessonData.room" class="text-gray-600">
+          {{ lessonData.room }}
+        </div>
+
+        <!-- Дополнительные даты -->
+        <div v-if="lessonData.dates" class="text-gray-600">
+          {{ lessonData.dates }}
+        </div>
+      </div>
+    </div>
+
+    <!-- Индикатор пустой ячейки -->
+    <div v-else class="w-full h-full flex items-center justify-center pointer-events-none">
+      <div class="w-2 h-2 bg-gray-200 rounded-full opacity-0 group-hover:opacity-100 transition-opacity" />
+    </div>
+
+    <!-- Индикатор выбора -->
+    <div
+      v-if="isSelected"
+      class="absolute inset-0 border-2 border-blue-500 pointer-events-none"
+    />
+
+    <!-- Индикатор drag selection -->
+    <div
+      v-if="isDragSelected"
+      class="absolute inset-0 border-2 border-blue-400 bg-blue-100 bg-opacity-50 pointer-events-none"
+    />
+  </td>
+</template>
+
+<script setup>
+const props = defineProps({
+  timeSlot: {
+    type: Object,
+    required: true
+  },
+  group: {
+    type: Object,
+    required: true
+  },
+  subgroup: {
+    type: Object,
+    required: true
+  },
+  lessonData: {
+    type: Object,
+    default: null
+  }
+})
+
+const emit = defineEmits(['select', 'edit', 'drag-start', 'drag-update', 'drag-end'])
+
+const cellRef = ref(null)
+let wasDragging = false  // Флаг для отслеживания drag операции
+let dragStarted = false  // Флаг начала drag
+let startMousePos = { x: 0, y: 0 }  // Начальная позиция мыши
+const MIN_DRAG_DISTANCE = 8  // Минимальное расстояние в пикселях для начала drag
+
+// Drag selection из родительского компонента
+const dragSelection = inject('dragSelection', null)
+
+if (!dragSelection) {
+  console.error('DragSelection not provided')
+}
+
+// ID ячейки
+const cellId = computed(() => {
+  if (!dragSelection) return null
+  return dragSelection.createCellId(props.timeSlot.id, props.group.id, props.subgroup.id)
+})
+
+// Проверяем наличие урока
+const hasLesson = computed(() => {
+  return props.lessonData !== null
+})
+
+// Проверяем выделение ячейки (теперь только через глобальный dragSelection)
+const isSelected = computed(() => {
+  if (!dragSelection || !cellId.value) return false
+  return dragSelection.isCellSelected(cellId.value)
+})
+
+// Проверяем выделение через drag (то же самое что и isSelected)
+const isDragSelected = computed(() => {
+  return isSelected.value
+})
+
+// Обработка начала перетаскивания
+const handleMouseDown = (event) => {
+  if (event.button !== 0) return // Только левая кнопка мыши
+  if (!dragSelection || !cellId.value) return
+
+  event.preventDefault()
+  
+  dragStarted = true
+  wasDragging = false
+  
+  // Сохраняем начальную позицию мыши
+  startMousePos = { x: event.clientX, y: event.clientY }
+  
+  // Добавляем глобальные обработчики для отслеживания движения
+  document.addEventListener('mouseup', handleGlobalMouseUp)
+  document.addEventListener('mousemove', handleGlobalMouseMove)
+}
+
+// Обработка движения мыши (для определения drag)
+const handleGlobalMouseMove = (event) => {
+  if (dragStarted && !wasDragging) {
+    // Вычисляем расстояние от начальной точки
+    const dx = event.clientX - startMousePos.x
+    const dy = event.clientY - startMousePos.y
+    const distance = Math.sqrt(dx * dx + dy * dy)
+    
+    // Начинаем drag только если переместились достаточно далеко
+    if (distance >= MIN_DRAG_DISTANCE) {
+      wasDragging = true
+      console.log('Drag started after moving', distance, 'pixels')
+      
+      if (!dragSelection || !cellId.value) return
+      
+      const cellData = {
+        timeSlot: props.timeSlot,
+        group: props.group,
+        subgroup: props.subgroup,
+        lessonData: props.lessonData
+      }
+
+      // Всегда добавляем к существующему выбору
+      dragSelection.startSelection(cellId.value, cellData, true)
+      emit('drag-start', { cellId: cellId.value, cellData })
+    }
+  }
+}
+
+// Обработка входа мыши в ячейку
+const handleMouseEnter = () => {
+  if (!dragSelection || !dragSelection.isSelecting.value || !cellId.value) return
+
+  const cellData = {
+    timeSlot: props.timeSlot,
+    group: props.group,
+    subgroup: props.subgroup,
+    lessonData: props.lessonData
+  }
+
+  dragSelection.updateSelection(cellId.value, cellData)
+  emit('drag-update', { cellId: cellId.value, cellData })
+}
+
+// Обработка окончания перетаскивания
+const handleMouseUp = () => {
+  if (!dragSelection || !dragSelection.isSelecting.value) return
+
+  const selectedCells = dragSelection.endSelection()
+  emit('drag-end', { selectedCells, bounds: dragSelection.getSelectionBounds() })
+
+  // Удаляем глобальные обработчики
+  document.removeEventListener('mouseup', handleGlobalMouseUp)
+  document.removeEventListener('mousemove', handleGlobalMouseMove)
+}
+
+// Глобальный обработчик отпускания мыши
+const handleGlobalMouseUp = () => {
+  dragStarted = false
+  
+  if (dragSelection && dragSelection.isSelecting.value) {
+    handleMouseUp()
+  }
+  
+  // Удаляем обработчики
+  document.removeEventListener('mousemove', handleGlobalMouseMove)
+  document.removeEventListener('mouseup', handleGlobalMouseUp)
+}
+
+// Обработка клика по ячейке
+const handleCellClick = (event) => {
+  if (!dragSelection || !cellId.value) return
+  
+  // Если был drag - игнорируем click
+  if (wasDragging) {
+    wasDragging = false
+    return
+  }
+
+  console.log('Cell click:', cellId.value)
+
+  // Shift+клик очищает весь выбор
+  if (event.shiftKey) {
+    dragSelection.clearSelection()
+    console.log('Selection cleared with Shift+click')
+    return
+  }
+
+  const isCurrentlySelected = dragSelection.isCellSelected(cellId.value)
+  
+  // Простая логика: клик всегда переключает состояние ячейки
+  if (isCurrentlySelected) {
+    // Убираем из выбора
+    dragSelection.removeCellFromSelection(cellId.value)
+    console.log('Cell removed from selection')
+  } else {
+    // Добавляем к выбору
+    dragSelection.addCellToSelection(cellId.value)
+    console.log('Cell added to selection')
+  }
+
+  const cellData = {
+    timeSlot: props.timeSlot,
+    group: props.group,
+    subgroup: props.subgroup,
+    lessonData: props.lessonData,
+    selected: dragSelection.isCellSelected(cellId.value)
+  }
+
+  emit('select', cellData)
+}
+
+// Обработка правой кнопки мыши - очистка всего выбора
+const handleRightClick = (event) => {
+  event.preventDefault()
+  
+  if (!dragSelection) return
+  
+  dragSelection.clearSelection()
+  console.log('Selection cleared')
+}
+
+// Обработка двойного клика для редактирования
+const handleDoubleClick = () => {
+  const cellData = {
+    timeSlot: props.timeSlot,
+    group: props.group,
+    subgroup: props.subgroup,
+    lessonData: props.lessonData
+  }
+
+  emit('edit', cellData)
+}
+
+// Очищаем обработчики при размонтировании
+onUnmounted(() => {
+  document.removeEventListener('mouseup', handleGlobalMouseUp)
+  document.removeEventListener('mousemove', handleGlobalMouseMove)
+})
+</script>

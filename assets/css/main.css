@@ -1,0 +1,24 @@
+@import "tailwindcss";
+@import "@nuxt/ui";
+
+/* Дополнительные стили для таблицы расписания */
+.schedule-table {
+  @apply w-full border-collapse;
+}
+
+.schedule-cell {
+  @apply border border-gray-200 p-2 text-xs;
+}
+
+.schedule-cell:hover {
+  @apply bg-blue-50;
+}
+
+/* Фиксированные заголовки */
+.sticky-header {
+  @apply sticky top-0 z-10 bg-white;
+}
+
+.sticky-left {
+  @apply sticky left-0 z-10 bg-white;
+} 
