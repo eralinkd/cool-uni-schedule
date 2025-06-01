@@ -1,6 +1,10 @@
 
 export const useSubjectApi = () => {
-  const { $api, $loader } = useNuxtApp()
-  return { data, error, isLoading }
-}
+  const { $api } = useNuxtApp()
 
+  const getSubject = async(id) => {
+    const response = await $api.get(`/api/subjects/${id}`)
+    return response
+  }
+  return { getSubject }
+}

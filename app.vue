@@ -5,6 +5,7 @@
   <Notivue v-slot="item">
     <Notification :item="item" />
   </Notivue>
+  <LoadingView />
 </template>
 
 <script setup>

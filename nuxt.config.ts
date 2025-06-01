@@ -6,7 +6,8 @@ export default defineNuxtConfig({
     '@nuxt/fonts',
     '@nuxt/icon',
     '@nuxt/ui',
-    'notivue/nuxt'
+    'notivue/nuxt',
+    '@pinia/nuxt'
   ],
   devtools: { enabled: true },
   css: ['~/assets/css/main.css',
