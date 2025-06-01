@@ -9,6 +9,7 @@ export default defineNuxtConfig({
     'notivue/nuxt',
     '@pinia/nuxt'
   ],
+  ssr: false,
   devtools: { enabled: true },
   css: ['~/assets/css/main.css',
     'notivue/notifications.css',

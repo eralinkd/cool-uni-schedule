@@ -43,7 +43,7 @@
             Кафедра:
           </label>
           <USelect
-            :model-value="props.selectedDepartment"
+            :model-value="selectedDepartmentId"
             :items="departmentOptions"
             size="sm"
             class="w-48"
@@ -56,7 +56,7 @@
             Курс:
           </label>
           <USelect
-            :model-value="props.selectedCourse"
+            :model-value="selectedCourse"
             :items="courseOptions"
             size="sm"
             class="w-24"
@@ -85,7 +85,7 @@
       <div class="flex items-center justify-center">
         <div class="text-center">
           <div class="text-sm font-medium text-gray-900">
-            {{ props.selectedCourse }} курс {{ props.selectedDepartment }}
+            {{ selectedDepartmentName }}
           </div>
         </div>
       </div>
@@ -107,13 +107,17 @@ const props = defineProps({
     type: Number,
     default: 1
   },
-  selectedDepartment: {
-    type: String,
-    required: true
+  selectedDepartmentId: {
+    type: Number,
+    default: null
   },
   selectedCourse: {
-    type: String,
+    type: Number,
     required: true
+  },
+  departments: {
+    type: Array,
+    default: () => []
   }
 })
 
@@ -121,31 +125,41 @@ defineEmits(['week-change', 'department-change', 'course-change', 'specialty-cha
 
 const { getAllWeeks } = useAcademicWeeks()
 
-const departmentOptions = [
-  { label: 'ІПЗ - Інженерія програмного забезпечення', value: 'ІПЗ' },
-  { label: 'АІ - Штучний інтелект', value: 'АІ' },
-  { label: 'КБ - Кібербезпека', value: 'КБ' },
-  { label: 'ІР - Інформаційні ресурси', value: 'ІР' },
-  { label: 'МІТ - Медичні інформаційні технології', value: 'МІТ' },
-  { label: 'УТБ - Управління та технології баз даних', value: 'УТБ' }
-]
+// Формируем опции департаментов из реальных данных
+const departmentOptions = computed(() => {
+  return props.departments.map(dept => ({
+    label: dept.name,
+    value: dept.id
+  }))
+})
+
+// Получаем выбранный департамент
+const selectedDepartment = computed(() => {
+  return props.departments.find(d => d.id === props.selectedDepartmentId)
+})
+
+// Отображаемое имя департамента
+const selectedDepartmentName = computed(() => {
+  return selectedDepartment.value?.name || ''
+})
 
 const courseOptions = [
-  { label: '1 курс', value: '1' },
-  { label: '2 курс', value: '2' },
-  { label: '3 курс', value: '3' },
-  { label: '4 курс', value: '4' },
-  { label: 'Магістратура', value: 'М' }
+  { label: '1 курс', value: 1 },
+  { label: '2 курс', value: 2 },
+  { label: '3 курс', value: 3 },
+  { label: '4 курс', value: 4 },
+  { label: '5 курс', value: 5 },
+  { label: '6 курс (магістратура)', value: 6 }
 ]
 
-const specialties = computed(() => [
-  { code: 'ІПЗ', name: 'ІПЗ, ІТЗм', active: props.selectedDepartment === 'ІПЗ' },
-  { code: 'АІ', name: 'АІ, ТІ', active: props.selectedDepartment === 'АІ' },
-  { code: 'КБ', name: 'КБ, КБм', active: props.selectedDepartment === 'КБ' },
-  { code: 'ІР', name: 'ІР, ІРма', active: props.selectedDepartment === 'ІР' },
-  { code: 'МІТ', name: 'МІТ, МІТм', active: props.selectedDepartment === 'МІТ' },
-  { code: 'УТБ', name: 'УТБ', active: props.selectedDepartment === 'УТБ' }
-])
+// Специальности формируем из департаментов
+const specialties = computed(() => {
+  return props.departments.map(dept => ({
+    code: dept.id,
+    name: dept.name,
+    active: dept.id === props.selectedDepartmentId
+  }))
+})
 
 const allWeeks = getAllWeeks()
 const canNavigatePrev = computed(() => props.currentWeekNumber > 1)

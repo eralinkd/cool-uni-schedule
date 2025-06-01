@@ -1,30 +1,29 @@
-
 export const useSubjectApi = () => {
   const { $api } = useNuxtApp()
 
+  const getSubjects = async() => {
+    const response = await $api.get('/api/subject')
+    return response.data
+  }
+
   const getSubject = async(id) => {
-    const response = await $api.get(`/api/subjects/${id}`)
-    return response
+    const response = await $api.get(`/api/subject/${id}`)
+    return response.data
   }
 
   const putSubject = async(id, data) => {
-    const response = await $api.put(`/api/subjects/${id}`, data)
-    return response
+    const response = await $api.put(`/api/subject/${id}`, data)
+    return response.data
   }
 
   const deleteSubject = async(id) => {
-    const response = await $api.delete(`/api/subjects/${id}`)
-    return response
-  }
-
-  const getSubjects = async() => {
-    const response = await $api.get('/api/subject')
-    return response
+    const response = await $api.delete(`/api/subject/${id}`)
+    return response.data
   }
 
   const postSubject = async(data) => {
     const response = await $api.post('/api/subject', data)
-    return response
+    return response.data
   }
 
   const getSubjectByDepartment = async(departmentId) => {
@@ -32,5 +31,5 @@ export const useSubjectApi = () => {
     return response
   }
 
-  return { getSubject, putSubject, deleteSubject, getSubjects, postSubject, getSubjectByDepartment }
+  return { getSubjects, putSubject, deleteSubject, postSubject, getSubject, getSubjectByDepartment }
 }
