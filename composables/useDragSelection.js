@@ -3,7 +3,7 @@ export const useDragSelection = () => {
   const selectedCells = ref(new Set())
   const startCell = ref(null)
   const currentCell = ref(null)
-  const initialSelection = ref(new Set()) // Сохраняем изначальный выбор
+  const initialSelection = ref(new Set())
 
   const startSelection = (cellId, cellData, addToSelection = false) => {
     console.log('startSelection called:', { cellId, addToSelection, currentSize: selectedCells.value.size })
@@ -12,7 +12,6 @@ export const useDragSelection = () => {
     startCell.value = { id: cellId, data: cellData }
     currentCell.value = { id: cellId, data: cellData }
     
-    // Сохраняем текущий выбор если добавляем
     if (addToSelection) {
       initialSelection.value = new Set(selectedCells.value)
     } else {
@@ -29,13 +28,11 @@ export const useDragSelection = () => {
 
     currentCell.value = { id: cellId, data: cellData }
 
-    // Получаем координаты начальной и текущей ячейки
     const startCoords = parseCellId(startCell.value.id)
     const currentCoords = parseCellId(cellId)
 
     if (!startCoords || !currentCoords) return
 
-    // Определяем область выделения
     const minSlot = Math.min(startCoords.timeSlotId, currentCoords.timeSlotId)
     const maxSlot = Math.max(startCoords.timeSlotId, currentCoords.timeSlotId)
     const minGroup = Math.min(startCoords.groupId, currentCoords.groupId)
@@ -43,10 +40,8 @@ export const useDragSelection = () => {
     const minSubgroup = Math.min(startCoords.subgroupId, currentCoords.subgroupId)
     const maxSubgroup = Math.max(startCoords.subgroupId, currentCoords.subgroupId)
 
-    // Начинаем с изначального выбора
     selectedCells.value = new Set(initialSelection.value)
 
-    // Добавляем новые ячейки
     for (let slot = minSlot; slot <= maxSlot; slot++) {
       for (let group = minGroup; group <= maxGroup; group++) {
         for (let subgroup = minSubgroup; subgroup <= maxSubgroup; subgroup++) {
@@ -59,8 +54,7 @@ export const useDragSelection = () => {
 
   const endSelection = () => {
     isSelecting.value = false
-    initialSelection.value.clear() // Очищаем временное хранилище
-    // Сохраняем выделение
+    initialSelection.value.clear()
     return Array.from(selectedCells.value)
   }
 
@@ -77,7 +71,6 @@ export const useDragSelection = () => {
     return selectedCells.value.has(cellId)
   }
 
-  // Добавляем или удаляем одну ячейку из выбора
   const toggleCellSelection = (cellId) => {
     if (selectedCells.value.has(cellId)) {
       selectedCells.value.delete(cellId)
@@ -86,22 +79,18 @@ export const useDragSelection = () => {
     }
   }
 
-  // Добавляем ячейку в выбор
   const addCellToSelection = (cellId) => {
     selectedCells.value.add(cellId)
   }
 
-  // Удаляем ячейку из выбора
   const removeCellFromSelection = (cellId) => {
     selectedCells.value.delete(cellId)
   }
 
-  // Получаем количество выбранных ячеек
   const getSelectedCount = () => {
     return selectedCells.value.size
   }
 
-  // Парсим ID ячейки для получения координат
   const parseCellId = (cellId) => {
     const match = cellId.match(/slot-(\d+)-group-(\d+)-subgroup-(\d+)/)
     if (!match) return null
@@ -113,7 +102,6 @@ export const useDragSelection = () => {
     }
   }
 
-  // Создаем ID ячейки из компонентов
   const createCellId = (timeSlotId, groupId, subgroupId) => {
     return `slot-${timeSlotId}-group-${groupId}-subgroup-${subgroupId}`
   }

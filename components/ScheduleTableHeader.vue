@@ -1,8 +1,6 @@
 <template>
   <thead class="bg-gray-50">
-    <!-- Строка с названиями групп -->
     <tr>
-      <!-- Колонки времени -->
       <th
         rowspan="2"
         class="sticky left-0 z-20 bg-gray-50 border-r border-gray-200 p-2 text-left w-16 text-xs font-medium text-gray-600"
@@ -16,7 +14,6 @@
         час
       </th>
 
-      <!-- Группы -->
       <th
         v-for="group in groups"
         :key="group.id"
@@ -27,7 +24,6 @@
       </th>
     </tr>
 
-    <!-- Строка с подгруппами -->
     <tr>
       <template v-for="group in groups" :key="`subgroups-${group.id}`">
         <th

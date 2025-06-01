@@ -1,6 +1,5 @@
 <template>
   <div class="space-y-6">
-    <!-- Header -->
     <ScheduleHeader
       :semester="currentSemester"
       :week="currentWeek"
@@ -13,7 +12,6 @@
       @specialty-change="handleSpecialtyChange"
     />
 
-    <!-- Schedule Table -->
     <ScheduleTable
       :schedule-data="scheduleData"
       :groups="filteredGroups"
@@ -23,7 +21,6 @@
       @drag-selection="handleDragSelection"
     />
 
-    <!-- Debug info for drag selection -->
     <div v-if="selectedCount > 0" class="p-4 bg-gray-100 rounded text-sm">
       <div class="flex items-center justify-between">
         <div>
@@ -46,21 +43,16 @@
 </template>
 
 <script setup>
-// Композитные
 const { getCurrentWeekNumber, getWeekInfo } = useAcademicWeeks()
 
-// Глобальный drag selection для всего приложения
 const globalDragSelection = useDragSelection()
 provide('dragSelection', globalDragSelection)
 
-// Реактивное количество выбранных ячеек
 const selectedCount = computed(() => globalDragSelection.selectedCells.value.size)
 
-// Данные недели
 const currentWeekNumber = ref(getCurrentWeekNumber())
 const currentSemester = ref('2 семестр 2024-2025')
 
-// Вычисляемая информация о текущей неделе
 const currentWeek = computed(() => {
   return getWeekInfo(currentWeekNumber.value) || {
     number: 1,
@@ -70,11 +62,9 @@ const currentWeek = computed(() => {
   }
 })
 
-// Фильтры
 const selectedDepartment = ref('ІПЗ')
 const selectedCourse = ref('1')
 
-// Тестовые данные групп (расширенные)
 const allGroups = ref([
   {
     id: 1,
@@ -140,7 +130,6 @@ const allGroups = ref([
   }
 ])
 
-// Фильтрованные группы
 const filteredGroups = computed(() => {
   return allGroups.value.filter(group =>
     group.department === selectedDepartment.value
@@ -157,7 +146,6 @@ const timeSlots = ref([
 ])
 
 const scheduleData = ref({
-  // Примеры занятий
   'slot-1-group-1-subgroup-1': {
     subject: 'Іноземна мова (Пр)',
     professor: 'Голубовська І. О.',
@@ -180,7 +168,6 @@ const scheduleData = ref({
   }
 })
 
-// Обработчики
 const handleWeekChange = (direction) => {
   if (direction === 'prev' && currentWeekNumber.value > 1) {
     currentWeekNumber.value--

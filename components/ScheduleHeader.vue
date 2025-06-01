@@ -1,6 +1,5 @@
 <template>
   <div class="bg-white border border-gray-200 rounded-lg shadow-sm">
-    <!-- Основная информация -->
     <div class="p-4 bg-yellow-50 border-b border-gray-200 rounded-t-lg">
       <div class="flex flex-col space-y-2">
         <div class="flex items-center justify-between">
@@ -37,7 +36,6 @@
       </div>
     </div>
 
-    <!-- Селекторы кафедры и курса -->
     <div class="p-3 bg-gray-50 border-b border-gray-200">
       <div class="flex items-center gap-4 text-sm">
         <div class="flex items-center gap-2">
@@ -68,7 +66,6 @@
       </div>
     </div>
 
-    <!-- Навигация по специальностям -->
     <div class="p-3 bg-gray-50 border-b border-gray-200">
       <div class="flex flex-wrap gap-2 text-sm">
         <UButton
@@ -84,7 +81,6 @@
       </div>
     </div>
 
-    <!-- Курс информация -->
     <div class="p-3 bg-white rounded-b-lg">
       <div class="flex items-center justify-center">
         <div class="text-center">
