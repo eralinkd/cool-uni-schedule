@@ -26,8 +26,8 @@
         <div>
           <h3 class="font-medium mb-1">Выбрано ячеек: {{ selectedCount }}</h3>
           <p class="text-gray-600 text-xs">
-            • Клик - добавить/убрать ячейку<br>
-            • Перетаскивание - добавить область к выбору<br>
+            • Клик - добавить/убрать ячейку<br />
+            • Перетаскивание - добавить область к выбору<br />
             • Shift+клик или правая кнопка - очистить весь выбор
           </p>
         </div>
@@ -43,6 +43,8 @@
 </template>
 
 <script setup>
+import { computed, ref, watch } from 'vue'
+
 const { getCurrentWeekNumber, getWeekInfo } = useAcademicWeeks()
 
 const globalDragSelection = useDragSelection()
@@ -137,6 +139,12 @@ const filteredGroups = computed(() => {
   )
 })
 
+// Отслеживаем изменения в фильтрованных группах
+watch(filteredGroups, () => {
+  // Очищаем зарегистрированные ячейки при изменении списка групп
+  globalDragSelection.clearAvailableCells()
+}, { deep: true })
+
 const timeSlots = ref([
   { id: 1, time: '9:00-10:20', period: 1 },
   { id: 2, time: '10:30-11:50', period: 2 },
@@ -179,10 +187,14 @@ const handleWeekChange = (direction) => {
 
 const handleDepartmentChange = (department) => {
   selectedDepartment.value = department
+  globalDragSelection.clearSelection()
+  globalDragSelection.clearAvailableCells()
 }
 
 const handleCourseChange = (course) => {
   selectedCourse.value = course
+  globalDragSelection.clearSelection()
+  globalDragSelection.clearAvailableCells()
 }
 
 const handleSpecialtyChange = (specialty) => {

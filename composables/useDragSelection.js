@@ -4,22 +4,36 @@ export const useDragSelection = () => {
   const startCell = ref(null)
   const currentCell = ref(null)
   const initialSelection = ref(new Set())
+  const availableCells = ref(new Set())
+
+  const registerAvailableCell = (cellId) => {
+    availableCells.value.add(cellId)
+  }
+
+  const clearAvailableCells = () => {
+    availableCells.value.clear()
+  }
+
+  const isCellAvailable = (cellId) => {
+    return availableCells.value.has(cellId)
+  }
 
   const startSelection = (cellId, cellData, addToSelection = false) => {
     console.log('startSelection called:', { cellId, addToSelection, currentSize: selectedCells.value.size })
-    
+
     isSelecting.value = true
     startCell.value = { id: cellId, data: cellData }
     currentCell.value = { id: cellId, data: cellData }
-    
+
     if (addToSelection) {
       initialSelection.value = new Set(selectedCells.value)
-    } else {
+    }
+    else {
       initialSelection.value.clear()
       selectedCells.value.clear()
       console.log('Selection cleared in startSelection')
     }
-    
+
     selectedCells.value.add(cellId)
   }
 
@@ -46,7 +60,9 @@ export const useDragSelection = () => {
       for (let group = minGroup; group <= maxGroup; group++) {
         for (let subgroup = minSubgroup; subgroup <= maxSubgroup; subgroup++) {
           const cellId = `slot-${slot}-group-${group}-subgroup-${subgroup}`
-          selectedCells.value.add(cellId)
+          if (isCellAvailable(cellId)) {
+            selectedCells.value.add(cellId)
+          }
         }
       }
     }
@@ -74,13 +90,16 @@ export const useDragSelection = () => {
   const toggleCellSelection = (cellId) => {
     if (selectedCells.value.has(cellId)) {
       selectedCells.value.delete(cellId)
-    } else {
+    }
+    else {
       selectedCells.value.add(cellId)
     }
   }
 
   const addCellToSelection = (cellId) => {
-    selectedCells.value.add(cellId)
+    if (isCellAvailable(cellId)) {
+      selectedCells.value.add(cellId)
+    }
   }
 
   const removeCellFromSelection = (cellId) => {
@@ -96,9 +115,9 @@ export const useDragSelection = () => {
     if (!match) return null
 
     return {
-      timeSlotId: parseInt(match[1]),
-      groupId: parseInt(match[2]),
-      subgroupId: parseInt(match[3])
+      timeSlotId: Number.parseInt(match[1]),
+      groupId: Number.parseInt(match[2]),
+      subgroupId: Number.parseInt(match[3])
     }
   }
 
@@ -138,6 +157,9 @@ export const useDragSelection = () => {
     removeCellFromSelection,
     getSelectedCount,
     createCellId,
-    getSelectionBounds
+    getSelectionBounds,
+    registerAvailableCell,
+    clearAvailableCells,
+    isCellAvailable
   }
 }

@@ -55,13 +55,11 @@
           <label class="text-gray-600">
             Курс:
           </label>
-          <USelectMenu
+          <USelect
             :model-value="props.selectedCourse"
             :items="courseOptions"
             size="sm"
             class="w-24"
-            value-key="value"
-            label-key="label"
             @update:model-value="$emit('course-change', $event)"
           />
         </div>

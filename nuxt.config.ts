@@ -5,9 +5,17 @@ export default defineNuxtConfig({
     '@nuxt/eslint',
     '@nuxt/fonts',
     '@nuxt/icon',
-    '@nuxt/ui'
+    '@nuxt/ui',
+    'notivue/nuxt'
   ],
   devtools: { enabled: true },
-  css: ['~/assets/css/main.css'],
+  css: ['~/assets/css/main.css',
+    'notivue/notifications.css',
+    'notivue/animations.css'],
+  runtimeConfig: {
+    public: {
+      API_URL: process.env.API_URL
+    }
+  },
   compatibilityDate: '2025-05-15'
 })

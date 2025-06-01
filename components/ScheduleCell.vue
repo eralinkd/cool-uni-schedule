@@ -57,6 +57,8 @@
 </template>
 
 <script setup>
+import { onMounted, onUnmounted } from 'vue'
+
 const props = defineProps({
   timeSlot: {
     type: Object,
@@ -89,6 +91,13 @@ const dragSelection = inject('dragSelection', null)
 if (!dragSelection) {
   console.error('DragSelection not provided')
 }
+else {
+  onMounted(() => {
+    if (cellId.value) {
+      dragSelection.registerAvailableCell(cellId.value)
+    }
+  })
+}
 
 const cellId = computed(() => {
   if (!dragSelection) return null
@@ -113,12 +122,12 @@ const handleMouseDown = (event) => {
   if (!dragSelection || !cellId.value) return
 
   event.preventDefault()
-  
+
   dragStarted = true
   wasDragging = false
-  
+
   startMousePos = { x: event.clientX, y: event.clientY }
-  
+
   document.addEventListener('mouseup', handleGlobalMouseUp)
   document.addEventListener('mousemove', handleGlobalMouseMove)
 }
@@ -128,13 +137,13 @@ const handleGlobalMouseMove = (event) => {
     const dx = event.clientX - startMousePos.x
     const dy = event.clientY - startMousePos.y
     const distance = Math.sqrt(dx * dx + dy * dy)
-    
+
     if (distance >= MIN_DRAG_DISTANCE) {
       wasDragging = true
       console.log('Drag started after moving', distance, 'pixels')
-      
+
       if (!dragSelection || !cellId.value) return
-      
+
       const cellData = {
         timeSlot: props.timeSlot,
         group: props.group,
@@ -174,18 +183,18 @@ const handleMouseUp = () => {
 
 const handleGlobalMouseUp = () => {
   dragStarted = false
-  
+
   if (dragSelection && dragSelection.isSelecting.value) {
     handleMouseUp()
   }
-  
+
   document.removeEventListener('mousemove', handleGlobalMouseMove)
   document.removeEventListener('mouseup', handleGlobalMouseUp)
 }
 
 const handleCellClick = (event) => {
   if (!dragSelection || !cellId.value) return
-  
+
   if (wasDragging) {
     wasDragging = false
     return
@@ -200,11 +209,12 @@ const handleCellClick = (event) => {
   }
 
   const isCurrentlySelected = dragSelection.isCellSelected(cellId.value)
-  
+
   if (isCurrentlySelected) {
     dragSelection.removeCellFromSelection(cellId.value)
     console.log('Cell removed from selection')
-  } else {
+  }
+  else {
     dragSelection.addCellToSelection(cellId.value)
     console.log('Cell added to selection')
   }
@@ -222,9 +232,9 @@ const handleCellClick = (event) => {
 
 const handleRightClick = (event) => {
   event.preventDefault()
-  
+
   if (!dragSelection) return
-  
+
   dragSelection.clearSelection()
   console.log('Selection cleared')
 }
