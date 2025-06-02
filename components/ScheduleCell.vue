@@ -100,6 +100,9 @@ else {
     if (cellId.value) {
       dragSelection.registerAvailableCell(cellId.value)
     }
+    else {
+      console.warn('cellId is null on mount, props:', props)
+    }
   })
 }
 

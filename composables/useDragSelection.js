@@ -14,6 +14,10 @@ export const useDragSelection = () => {
     availableCells.value.clear()
   }
 
+  const getAvailableCellsCount = () => {
+    return availableCells.value.size
+  }
+
   const isCellAvailable = (cellId) => {
     return availableCells.value.has(cellId)
   }
@@ -40,34 +44,86 @@ export const useDragSelection = () => {
   const updateSelection = (cellId, cellData) => {
     if (!isSelecting.value || !startCell.value) return
 
+    console.log('updateSelection called:', { cellId, startCell: startCell.value.id })
+
     currentCell.value = { id: cellId, data: cellData }
 
     const startCoords = parseCellId(startCell.value.id)
     const currentCoords = parseCellId(cellId)
 
-    if (!startCoords || !currentCoords) return
+    if (!startCoords || !currentCoords) {
+      console.log('Failed to parse cell IDs:', { startCoords, currentCoords })
+      return
+    }
 
-    if (startCoords.dayId !== currentCoords.dayId) return
+    console.log('Parsed coords:', { startCoords, currentCoords })
+
+    if (startCoords.dayId !== currentCoords.dayId) {
+      console.log('Different days, skipping selection')
+      return
+    }
 
     const minSlot = Math.min(startCoords.timeSlotId, currentCoords.timeSlotId)
     const maxSlot = Math.max(startCoords.timeSlotId, currentCoords.timeSlotId)
-    const minGroup = Math.min(startCoords.groupId, currentCoords.groupId)
-    const maxGroup = Math.max(startCoords.groupId, currentCoords.groupId)
-    const minSubgroup = Math.min(startCoords.subgroupId, currentCoords.subgroupId)
-    const maxSubgroup = Math.max(startCoords.subgroupId, currentCoords.subgroupId)
+
+    console.log('Selection range:', { minSlot, maxSlot })
+
+    // Получаем все доступные ячейки для этого дня
+    const dayPrefix = `day-${startCoords.dayId}-`
+    const availableCellsForDay = Array.from(availableCells.value)
+      .filter(cellId => cellId.startsWith(dayPrefix))
+      .map(cellId => ({ cellId, coords: parseCellId(cellId) }))
+      .filter(item => item.coords !== null)
+
+    console.log('Available cells for day:', availableCellsForDay.length)
+
+    // Находим уникальные группы и подгруппы, упорядоченные по их появлению в таблице
+    const uniqueGroups = [...new Set(availableCellsForDay.map(item => item.coords.groupId))]
+    const uniqueSubgroups = [...new Set(availableCellsForDay.map(item => item.coords.subgroupId))]
+
+    console.log('Unique groups:', uniqueGroups)
+    console.log('Unique subgroups:', uniqueSubgroups)
+
+    // Находим индексы start и current координат
+    const startGroupIndex = uniqueGroups.indexOf(startCoords.groupId)
+    const currentGroupIndex = uniqueGroups.indexOf(currentCoords.groupId)
+    const startSubgroupIndex = uniqueSubgroups.indexOf(startCoords.subgroupId)
+    const currentSubgroupIndex = uniqueSubgroups.indexOf(currentCoords.subgroupId)
+
+    if (startGroupIndex === -1 || currentGroupIndex === -1
+      || startSubgroupIndex === -1 || currentSubgroupIndex === -1) {
+      console.log('Could not find indices for coordinates')
+      return
+    }
+
+    // Определяем диапазоны индексов
+    const minGroupIndex = Math.min(startGroupIndex, currentGroupIndex)
+    const maxGroupIndex = Math.max(startGroupIndex, currentGroupIndex)
+    const minSubgroupIndex = Math.min(startSubgroupIndex, currentSubgroupIndex)
+    const maxSubgroupIndex = Math.max(startSubgroupIndex, currentSubgroupIndex)
+
+    console.log('Index ranges:', { minGroupIndex, maxGroupIndex, minSubgroupIndex, maxSubgroupIndex })
 
     selectedCells.value = new Set(initialSelection.value)
 
+    let addedCells = 0
+    // Проходим по всем ячейкам в прямоугольной области
     for (let slot = minSlot; slot <= maxSlot; slot++) {
-      for (let group = minGroup; group <= maxGroup; group++) {
-        for (let subgroup = minSubgroup; subgroup <= maxSubgroup; subgroup++) {
-          const cellId = `day-${startCoords.dayId}-slot-${slot}-group-${group}-subgroup-${subgroup}`
-          if (isCellAvailable(cellId)) {
-            selectedCells.value.add(cellId)
+      for (let groupIndex = minGroupIndex; groupIndex <= maxGroupIndex; groupIndex++) {
+        for (let subgroupIndex = minSubgroupIndex; subgroupIndex <= maxSubgroupIndex; subgroupIndex++) {
+          const groupId = uniqueGroups[groupIndex]
+          const subgroupId = uniqueSubgroups[subgroupIndex]
+          const testCellId = `day-${startCoords.dayId}-slot-${slot}-group-${groupId}-subgroup-${subgroupId}`
+
+          if (isCellAvailable(testCellId)) {
+            selectedCells.value.add(testCellId)
+            addedCells++
           }
         }
       }
     }
+
+    console.log('updateSelection result:', { addedCells, totalSelected: selectedCells.value.size })
   }
 
   const endSelection = () => {
@@ -113,14 +169,14 @@ export const useDragSelection = () => {
   }
 
   const parseCellId = (cellId) => {
-    const match = cellId.match(/day-(\d+)-slot-(\d+)-group-(\d+)-subgroup-(\d+)/)
+    const match = cellId.match(/day-(\d+)-slot-(\d+)-group-(.+)-subgroup-(.+)/)
     if (!match) return null
 
     return {
       dayId: Number.parseInt(match[1]),
       timeSlotId: Number.parseInt(match[2]),
-      groupId: Number.parseInt(match[3]),
-      subgroupId: Number.parseInt(match[4])
+      groupId: match[3],
+      subgroupId: match[4]
     }
   }
 
@@ -137,14 +193,25 @@ export const useDragSelection = () => {
 
     if (coords.length === 0) return null
 
+    // Получаем все уникальные значения
+    const dayIds = [...new Set(coords.map(c => c.dayId))]
+    const timeSlotIds = coords.map(c => c.timeSlotId)
+    const groupIds = [...new Set(coords.map(c => c.groupId))]
+    const subgroupIds = [...new Set(coords.map(c => c.subgroupId))]
+
     return {
-      dayId: coords[0].dayId,
-      minSlot: Math.min(...coords.map(c => c.timeSlotId)),
-      maxSlot: Math.max(...coords.map(c => c.timeSlotId)),
-      minGroup: Math.min(...coords.map(c => c.groupId)),
-      maxGroup: Math.max(...coords.map(c => c.groupId)),
-      minSubgroup: Math.min(...coords.map(c => c.subgroupId)),
-      maxSubgroup: Math.max(...coords.map(c => c.subgroupId))
+      dayId: dayIds[0], // Предполагаем что выбор в пределах одного дня
+      minSlot: Math.min(...timeSlotIds),
+      maxSlot: Math.max(...timeSlotIds),
+      groupIds: groupIds,
+      subgroupIds: subgroupIds,
+      // Оставляем старые поля для обратной совместимости
+      groupId: groupIds[0],
+      subgroupId: subgroupIds[0],
+      minGroup: groupIds[0],
+      maxGroup: groupIds[groupIds.length - 1],
+      minSubgroup: subgroupIds[0],
+      maxSubgroup: subgroupIds[subgroupIds.length - 1]
     }
   }
 
@@ -164,6 +231,7 @@ export const useDragSelection = () => {
     getSelectionBounds,
     registerAvailableCell,
     clearAvailableCells,
+    getAvailableCellsCount,
     isCellAvailable
   }
 }

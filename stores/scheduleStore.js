@@ -1,5 +1,7 @@
 import { useScheduleApi } from '~/api/scheduleApi'
 import { useShowNotivue } from '~/composables/useNotivue'
+import { useProfessorStore } from '~/stores/professorStore'
+import { useSubjectStore } from '~/stores/subjectStore'
 
 export const useScheduleStore = defineStore('schedule', () => {
   const { $loader } = useNuxtApp()
@@ -13,20 +15,75 @@ export const useScheduleStore = defineStore('schedule', () => {
            чтобы ре-использовать существующие ScheduleTable-компоненты  --- */
   const flatMap = computed(() => {
     const m = {}
+
+    // Получаем данные из других stores для обогащения
+    const subjectStore = useSubjectStore()
+    const professorStore = useProfessorStore()
+
     for (const e of entries.value) {
-      // берём первую дату – в UI мы всё равно фильтруем неделей/днём
+      // Обрабатываем новый формат данных
+      const startTime = e.startTime
+      const endTime = e.endTime
+
+      // Преобразуем время в ID слота (примерное соответствие)
+      const timeString = `${startTime.hour.toString().padStart(2, '0')}:${startTime.minute.toString().padStart(2, '0')}-${endTime.hour.toString().padStart(2, '0')}:${endTime.minute.toString().padStart(2, '0')}`
+
+      // Маппинг времени на ID слота
+      const timeSlotMapping = {
+        '09:00-10:20': 1,
+        '10:30-11:50': 2,
+        '12:10-13:30': 3,
+        '13:40-15:00': 4,
+        '15:10-16:30': 5
+      }
+      const slotId = timeSlotMapping[timeString] || 1
+
+      // Обрабатываем даты - берём первую дату и преобразуем в день недели
       const dateObj = Array.isArray(e.dates) && e.dates.length ? e.dates[0] : null
-      const day = dateObj ? (new Date(dateObj.date).getDay()) : null // 0-6
-      const slotId = e.type // грубая заглушка
-      for (const g of e.groups ?? []) {
-        for (const sg of (e.subgroups?.length ? e.subgroups : [{ id: null }])) {
-          const key = `day-${day}-slot-${slotId}-group-${g.id}-subgroup-${sg.id || 0}`
+      let day = null
+      if (dateObj) {
+        const lessonDate = new Date(dateObj.date || dateObj)
+        day = lessonDate.getDay() || 7 // 0=воскресенье -> 7, 1=понедельник, etc.
+        if (day === 0) day = 7 // воскресенье в конец недели
+      }
+
+      // Получаем название предмета и преподавателя
+      const subject = subjectStore.subjects.find(s => s.id === e.subject)
+      const professor = professorStore.professors.find(p => p.id === e.professor)
+
+      const subjectName = e.subjectName || subject?.name || `Subject ${e.subject}`
+      const professorName = e.professorName || (professor ? `${professor.firstName} ${professor.lastName}` : `Professor ${e.professor}`)
+
+      // Обрабатываем группы и подгруппы из нового формата
+      const groups = e.groups || []
+      const subgroups = e.subgroups || []
+
+      for (const g of groups) {
+        // Если есть подгруппы в самой группе, используем их
+        const groupSubgroups = g.subgroups && g.subgroups.length > 0 ? g.subgroups : subgroups
+
+        if (groupSubgroups.length === 0) {
+          // Если подгрупп нет, создаем запись для всей группы
+          const key = `day-${day}-slot-${slotId}-group-${g.id}-subgroup-0`
           m[key] = {
-            subject: e.subjectName, // back-доописка
-            professor: e.professorName,
+            subject: `${subjectName} (${e.type})`,
+            professor: professorName,
             room: (e.rooms?.[0]?.name) || '',
             isOnline: e.isOnline,
             onlineLink: e.onlineLink
+          }
+        }
+        else {
+          // Создаем записи для каждой подгруппы
+          for (const sg of groupSubgroups) {
+            const key = `day-${day}-slot-${slotId}-group-${g.id}-subgroup-${sg.id}`
+            m[key] = {
+              subject: `${subjectName} (${e.type})`,
+              professor: professorName,
+              room: (e.rooms?.[0]?.name) || '',
+              isOnline: e.isOnline,
+              onlineLink: e.onlineLink
+            }
           }
         }
       }

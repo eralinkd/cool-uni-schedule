@@ -39,7 +39,32 @@
                   :key="subject.id"
                   :value="subject"
                 >
-                  {{ subject.name }} ({{ subject.type }})
+                  {{ subject.name }}
+                </option>
+              </select>
+            </div>
+
+            <!-- Выбор типа занятия -->
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">
+                Тип заняття *
+              </label>
+              <select
+                v-model="selectedLessonType"
+                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                required
+              >
+                <option value="">
+                  Оберіть тип заняття
+                </option>
+                <option value="LECTURE">
+                  Лекція
+                </option>
+                <option value="PRACTICE">
+                  Практичне заняття
+                </option>
+                <option value="LABORATORY">
+                  Лабораторна робота
                 </option>
               </select>
             </div>
@@ -185,6 +210,7 @@ const selectedRoom = ref('')
 const isOnline = ref(false)
 const onlineLink = ref('')
 const additionalDates = ref('')
+const selectedLessonType = ref('')
 
 // Информация о выбранных ячейках
 const selectedCellsInfo = computed(() => {
@@ -205,24 +231,22 @@ const selectedCellsInfo = computed(() => {
 // Фильтрованные преподаватели по выбранному предмету
 const filteredProfessors = computed(() => {
   if (!selectedSubject.value) return []
-  return props.professors.filter(prof =>
-    prof.subjects.includes(selectedSubject.value.id)
-  )
+  return props.professors
 })
 
 // Рекомендованные аудитории по типу занятия
 const recommendedRoomsForType = computed(() => {
-  if (!selectedSubject.value) return props.rooms
+  if (!selectedLessonType.value) return props.rooms
 
   let filteredRooms = []
-  if (selectedSubject.value.type === 'Лекція') {
-    filteredRooms = props.rooms.filter(room => room.type === 'лекційна' || room.capacity >= 40)
+  if (selectedLessonType.value === 'LECTURE') {
+    filteredRooms = props.rooms.filter(room => room.type === 'LECTURE' || room.capacity >= 40)
   }
-  else if (selectedSubject.value.type === 'Лабораторна') {
-    filteredRooms = props.rooms.filter(room => room.type === 'комп\'ютерна')
+  else if (selectedLessonType.value === 'LABORATORY') {
+    filteredRooms = props.rooms.filter(room => room.type === 'LABORATORY')
   }
-  else {
-    filteredRooms = props.rooms.filter(room => room.type === 'звичайна' && room.capacity >= 20)
+  else if (selectedLessonType.value === 'PRACTICE') {
+    filteredRooms = props.rooms.filter(room => room.type === 'PRACTICE' && room.capacity >= 20)
   }
 
   // Если нет подходящих, показываем все
@@ -231,7 +255,7 @@ const recommendedRoomsForType = computed(() => {
 
 // Валидация формы
 const isFormValid = computed(() => {
-  return selectedSubject.value && selectedProfessor.value && selectedRoom.value
+  return selectedSubject.value && selectedLessonType.value && selectedProfessor.value && selectedRoom.value
 })
 
 // Обработка сохранения
@@ -239,7 +263,10 @@ const handleSave = () => {
   if (!isFormValid.value) return
 
   const lessonData = {
-    subject: selectedSubject.value,
+    subject: {
+      ...selectedSubject.value,
+      type: selectedLessonType.value
+    },
     professor: selectedProfessor.value,
     room: selectedRoom.value,
     isOnline: isOnline.value,
@@ -261,10 +288,13 @@ watch(selectedSubject, (newSubject) => {
   }
 })
 
-// Автоматически выбираем первую подходящую аудиторию
-watch([selectedSubject, recommendedRoomsForType], ([newSubject, newRooms]) => {
-  if (newSubject && newRooms.length > 0) {
+// Автоматически выбираем первую подходящую аудиторию при изменении типа занятия
+watch([selectedLessonType, recommendedRoomsForType], ([newLessonType, newRooms]) => {
+  if (newLessonType && newRooms.length > 0) {
     selectedRoom.value = newRooms[0]
+  }
+  else {
+    selectedRoom.value = ''
   }
 })
 </script>

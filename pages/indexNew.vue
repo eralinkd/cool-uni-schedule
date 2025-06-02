@@ -22,6 +22,67 @@
       @drag-selection="handleDragSelection"
     />
 
+    <!-- Подробная отладочная информация для ScheduleTable -->
+    <div class="p-4 bg-green-50 border border-green-200 rounded text-sm">
+      <h4 class="font-medium text-green-800 mb-2">🔍 Отладка передачи данных в ScheduleTable:</h4>
+      <div class="space-y-1 text-xs">
+        <p><strong>filteredGroups.length:</strong> {{ filteredGroups.length }}</p>
+        <p><strong>timeSlots.length:</strong> {{ timeSlots.length }}</p>
+        <p><strong>scheduleData keys:</strong> {{ Object.keys(scheduleData).length }}</p>
+
+        <div v-if="filteredGroups.length > 0" class="mt-2">
+          <p><strong>Детали групп:</strong></p>
+          <div
+            v-for="(group, index) in filteredGroups"
+            :key="group.id"
+            class="ml-2"
+          >
+            <p>{{ index + 1 }}. {{ group.name }} (ID: {{ group.id }})</p>
+            <p class="ml-4 text-gray-600">Подгруппы: {{ group.subgroups?.length || 0 }}</p>
+            <div v-if="group.subgroups?.length" class="ml-6">
+              <span
+                v-for="sub in group.subgroups"
+                :key="sub.id"
+                class="inline-block mr-2"
+              >
+                {{ sub.name }} ({{ sub.id }})
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div v-else class="mt-2 text-red-600">
+          <p><strong>⚠️ Группы отсутствуют!</strong> Проверьте:</p>
+          <ul class="ml-4 list-disc">
+            <li>Загружены ли группы из API</li>
+            <li>Правильно ли работает фильтрация по департаменту</li>
+            <li>Есть ли группы для выбранного курса</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- Дополнительная отладочная информация для ScheduleTable -->
+    <div v-if="filteredGroups.length === 0" class="p-4 bg-red-50 border border-red-200 rounded text-sm">
+      <h4 class="font-medium text-red-800 mb-2">⚠️ Нет групп для отображения</h4>
+      <p class="text-red-700">
+        Проверьте: выбран ли департамент, есть ли группы для выбранного департамента и курса.
+      </p>
+      <details class="mt-2">
+        <summary class="cursor-pointer text-red-600">
+          Детали отладки
+        </summary>
+        <pre class="mt-2 text-xs bg-red-100 p-2 rounded overflow-auto">{{ {
+          selectedDepartmentId,
+          selectedCourse,
+          totalGroups: groupStore.groups?.length || 0,
+          filteredByDepartment: groups.length,
+          filteredByourse: filteredGroups.length,
+          allDepartments: departments.map(d => ({ id: d.id, name: d.name })),
+        } }}</pre>
+      </details>
+    </div>
+
     <!-- Дебаг информация -->
     <div class="p-2 bg-yellow-50 border rounded text-xs">
       <p>
@@ -40,13 +101,6 @@
       </p>
       <p v-if="filteredGroups.length > 0">
         <strong>Группы:</strong> {{ filteredGroups.map(g => g.name).join(', ') }}
-      </p>
-      <p v-if="filteredGroups.length > 0">
-        <strong>ID групп:</strong> {{ filteredGroups.map(g => g.id).join(', ') }}
-      </p>
-      <p v-if="filteredGroups.length > 0 && filteredGroups[0].subgroups">
-        <strong>Подгруппы первой группы:</strong>
-        {{ filteredGroups[0].subgroups.map(s => `${s.name}(${s.id})`).join(', ') }}
       </p>
       <p v-if="Object.keys(scheduleData).length > 0">
         <strong>Расписание (первые 3):</strong>
@@ -142,7 +196,7 @@ const { getCurrentWeekNumber, getWeekInfo } = useAcademicWeeks()
 const globalDragSelection = useDragSelection()
 provide('dragSelection', globalDragSelection)
 
-// Инициализация stores (из indexNew.vue)
+// Инициализация stores
 const scheduleStore = useScheduleStore()
 const groupStore = useGroupStore()
 const departmentStore = useDepartmentStore()
@@ -164,13 +218,13 @@ const currentWeek = computed(() => {
   }
 })
 
-// Данные из stores (из indexNew.vue)
+// Данные из stores
 const departments = computed(() => departmentStore.departments)
 const subjects = computed(() => subjectStore.subjects)
 const rawProfessors = computed(() => professorStore.professors)
 const rooms = computed(() => roomStore.rooms)
 
-// Преобразуем данные преподавателей для совместимости с CreateLessonModal (из indexNew.vue)
+// Преобразуем данные преподавателей для совместимости с CreateLessonModal
 const professors = computed(() => {
   if (!Array.isArray(rawProfessors.value) || !Array.isArray(subjects.value)) return []
 
@@ -192,7 +246,7 @@ const professors = computed(() => {
   })
 })
 
-// Группы фильтруем через метод store (из indexNew.vue)
+// Группы фильтруем через метод store, но с исправленной логикой
 const groups = computed(() => {
   if (!selectedDepartmentId.value) return []
 
@@ -230,7 +284,7 @@ const showRoomModal = ref(false)
 const createdLessonData = ref(null)
 const recommendedRooms = ref([])
 
-// Фильтрованные группы по курсу с генерацией подгрупп (из indexNew.vue)
+// Фильтрованные группы по курсу с генерацией подгрупп
 const filteredGroups = computed(() => {
   if (!Array.isArray(groups.value)) {
     console.log('Groups is not an array:', groups.value)
@@ -264,11 +318,11 @@ const filteredGroups = computed(() => {
       const newGroup = {
         ...group,
         subgroups: [
-          { id: `${group.id}_sub_1`, name: 'підгрупа 1' },
-          { id: `${group.id}_sub_2`, name: 'підгрупа 2' },
-          { id: `${group.id}_sub_3`, name: 'підгрупа 3' },
-          { id: `${group.id}_sub_4`, name: 'підгрупа 4' },
-          { id: `${group.id}_sub_5`, name: 'підгрупа 5' }
+          { id: `${group.id}-1`, name: 'підгрупа 1' },
+          { id: `${group.id}-2`, name: 'підгрупа 2' },
+          { id: `${group.id}-3`, name: 'підгрупа 3' },
+          { id: `${group.id}-4`, name: 'підгрупа 4' },
+          { id: `${group.id}-5`, name: 'підгрупа 5' }
         ]
       }
       console.log(`Generated subgroups for ${group.name}:`, newGroup.subgroups)
@@ -282,7 +336,7 @@ const filteredGroups = computed(() => {
   return withSubgroups
 })
 
-// Отслеживаем изменения в фильтрованных группах (упрощенная версия из старого index.vue)
+// Отслеживаем изменения в фильтрованных группах
 watch(filteredGroups, (newGroups, oldGroups) => {
   // Очищаем выделение при изменении списка групп
   globalDragSelection.clearSelection()
@@ -316,109 +370,8 @@ const timeSlots = ref([
   { id: 5, time: '15:10-16:30', period: 5 }
 ])
 
-// Расписание из scheduleStore преобразованное для отображения
-const scheduleData = computed(() => {
-  const apiScheduleRaw = scheduleStore.entries // Используем entries вместо flatMap
-  console.log('Raw API schedule data:', apiScheduleRaw)
-  console.log('Type of API schedule:', typeof apiScheduleRaw)
-  console.log('Is array:', Array.isArray(apiScheduleRaw))
-
-  // Безопасная проверка что данные являются массивом
-  const apiSchedule = Array.isArray(apiScheduleRaw) ? apiScheduleRaw : []
-
-  if (!Array.isArray(apiScheduleRaw)) {
-    console.warn('scheduleStore.entries is not an array:', apiScheduleRaw)
-    return {}
-  }
-
-  const transformedSchedule = {}
-
-  console.log('Transforming API schedule:', apiSchedule)
-
-  for (const lesson of apiSchedule) {
-    try {
-      // Получаем данные из stores по ID
-      const subject = subjects.value.find(s => s.id === lesson.subject)
-      const professor = professors.value.find(p => p.id === lesson.professor)
-      const room = rooms.value.find(r => lesson.rooms?.includes(r.id))
-
-      // Преобразуем время в слот
-      let timeString
-      if (typeof lesson.startTime === 'string') {
-        // API возвращает строку "10:30:00"
-        timeString = lesson.startTime.substring(0, 5) // "10:30"
-      }
-      else if (lesson.startTime?.hour !== undefined) {
-        // Если это объект с hour/minute
-        const startHour = lesson.startTime.hour
-        const startMinute = lesson.startTime.minute || 0
-        timeString = `${startHour.toString().padStart(2, '0')}:${startMinute.toString().padStart(2, '0')}`
-      }
-      else {
-        continue
-      }
-
-      const timeSlot = timeSlots.value.find((slot) => {
-        const [slotStart] = slot.time.split('-')
-        return slotStart === timeString
-      })
-
-      if (!timeSlot) {
-        continue
-      }
-
-      // Создаем данные для отображения
-      const typeLabel = lesson.type === 'LECTURE' ? 'Лек' : lesson.type === 'LABORATORY' ? 'Лаб' : 'Пр'
-      const lessonDisplay = {
-        subject: subject ? `${subject.name} (${typeLabel})` : `Предмет ${lesson.subject}`,
-        professor: professor ? professor.name : `Викладач ${lesson.professor}`,
-        room: room ? room.name : `Ауд. ${lesson.rooms?.[0] || 'невідома'}`,
-        dates: lesson.dayOfWeek || lesson.dates?.map(d => d.date || d).join(', ') || '',
-        platform: lesson.isOnline ? (lesson.onlineLink || 'онлайн') : ''
-      }
-
-      // Определяем день из dayOfWeek
-      const dayOfWeekMapping = {
-        MONDAY: 1,
-        TUESDAY: 2,
-        WEDNESDAY: 3,
-        THURSDAY: 4,
-        FRIDAY: 5,
-        SATURDAY: 6,
-        SUNDAY: 7
-      }
-      const dayId = dayOfWeekMapping[lesson.dayOfWeek] || 1
-
-      // Если есть группы, создаем ячейки для каждой группы
-      if (lesson.groups && lesson.groups.length > 0) {
-        for (const groupId of lesson.groups) {
-          if (lesson.subgroups && lesson.subgroups.length > 0) {
-            // Используем указанные подгруппы
-            for (const subgroupId of lesson.subgroups) {
-              const cellKey = `day-${dayId}-slot-${timeSlot.id}-group-${groupId}-subgroup-${subgroupId}`
-              transformedSchedule[cellKey] = lessonDisplay
-            }
-          }
-          else {
-            // Если подгрупп нет, создаем для всех подгрупп группы
-            const group = filteredGroups.value.find(g => g.id === groupId)
-            if (group && group.subgroups) {
-              for (const subgroup of group.subgroups) {
-                const cellKey = `day-${dayId}-slot-${timeSlot.id}-group-${groupId}-subgroup-${subgroup.id}`
-                transformedSchedule[cellKey] = lessonDisplay
-              }
-            }
-          }
-        }
-      }
-    }
-    catch {
-      return
-    }
-  }
-
-  return transformedSchedule
-})
+// Расписание из scheduleStore
+const scheduleData = computed(() => scheduleStore.flatMap)
 
 const handleWeekChange = (direction) => {
   if (direction === 'prev' && currentWeekNumber.value > 1) {
@@ -445,13 +398,16 @@ const handleSpecialtyChange = (departmentId) => {
   selectedDepartmentId.value = departmentId
 }
 
-const handleCellSelect = (_cellData) => {
+const handleCellSelect = (cellData) => {
+  console.log('Cell selected:', cellData)
 }
 
-const handleCellEdit = (_cellData) => {
+const handleCellEdit = (cellData) => {
+  console.log('Cell edited:', cellData)
 }
 
-const handleDragSelection = (_selection) => {
+const handleDragSelection = (selection) => {
+  console.log('Drag selection:', selection)
 }
 
 // Функции для модальных окон
@@ -464,7 +420,6 @@ const closeCreateModal = () => {
   showCreateModal.value = false
 }
 
-// handleLessonCreate из indexNew.vue (работа с API)
 const handleLessonCreate = async(lessonData) => {
   console.log('Creating lesson:', lessonData)
 
@@ -492,7 +447,7 @@ const handleLessonCreate = async(lessonData) => {
 
     // Получаем уникальные группы и подгруппы
     const uniqueGroups = [...new Set(parsedCells.map(cell => cell.groupId))]
-    const _uniqueSubgroups = [...new Set(parsedCells.map(cell => cell.subgroupId))]
+    const uniqueSubgroups = [...new Set(parsedCells.map(cell => cell.subgroupId))]
     const uniqueTimeSlots = [...new Set(parsedCells.map(cell => cell.timeSlotId))]
     const uniqueDays = [...new Set(parsedCells.map(cell => cell.dayId))]
 
@@ -502,19 +457,7 @@ const handleLessonCreate = async(lessonData) => {
     const [startHour, startMinute] = startTimeStr.split(':').map(Number)
     const [endHour, endMinute] = endTimeStr.split(':').map(Number)
 
-    // Преобразуем дни в dayOfWeek и dates
-    const dayOfWeekMapping = {
-      1: 'MONDAY',
-      2: 'TUESDAY',
-      3: 'WEDNESDAY',
-      4: 'THURSDAY',
-      5: 'FRIDAY',
-      6: 'SATURDAY',
-      7: 'SUNDAY'
-    }
-    const dayOfWeek = dayOfWeekMapping[uniqueDays[0]] || 'MONDAY'
-
-    // Генерируем реальные даты для выбранного дня недели
+    // Преобразуем дни в даты (пример - текущая неделя)
     const today = new Date()
     const currentWeekStart = new Date(today.setDate(today.getDate() - today.getDay() + 1)) // Понедельник
     const dates = uniqueDays.map((dayId) => {
@@ -526,14 +469,23 @@ const handleLessonCreate = async(lessonData) => {
     // Создаем DTO для API согласно новому формату
     const dto = {
       type: lessonData.subject.type, // "LECTURE", "PRACTICE", "LABORATORY"
-      startTime: `${startHour.toString().padStart(2, '0')}:${startMinute.toString().padStart(2, '0')}:00`,
-      endTime: `${endHour.toString().padStart(2, '0')}:${endMinute.toString().padStart(2, '0')}:00`,
+      startTime: {
+        hour: startHour,
+        minute: startMinute,
+        second: 0,
+        nano: 0
+      },
+      endTime: {
+        hour: endHour,
+        minute: endMinute,
+        second: 0,
+        nano: 0
+      },
       isOnline: lessonData.isOnline || false,
       roomIds: [lessonData.room.id],
       professorId: lessonData.professor.id,
       groupIds: uniqueGroups,
-      subgroupIds: [],
-      dayOfWeek: dayOfWeek,
+      subgroupIds: uniqueSubgroups.filter(id => id !== 0), // исключаем нулевые подгруппы
       dates: dates,
       subjectId: lessonData.subject.id
     }
@@ -678,46 +630,30 @@ const testCreateModal = () => {
 // Функция для отладки доступных ячеек
 const debugAvailableCells = () => {
   console.log('=== DEBUG AVAILABLE CELLS ===')
-  console.log('Total available cells:', globalDragSelection.getAvailableCellsCount())
-  console.log('Available cells:', Array.from(globalDragSelection.availableCells.value))
   console.log('Filtered groups:', filteredGroups.value)
+
+  // Проверяем, какие ячейки должны быть зарегистрированы
+  const expectedCells = []
+  filteredGroups.value.forEach((group) => {
+    group.subgroups?.forEach((subgroup) => {
+      for (let day = 1; day <= 5; day++) {
+        for (let slot = 1; slot <= 5; slot++) {
+          expectedCells.push(`day-${day}-slot-${slot}-group-${group.id}-subgroup-${subgroup.id}`)
+        }
+      }
+    })
+  })
+
+  console.log('Expected cells count:', expectedCells.length)
+  console.log('Expected cells (first 10):', expectedCells.slice(0, 10))
+
+  // Проверяем какие ячейки отсутствуют
+  const missing = expectedCells.filter(cellId => !globalDragSelection.isCellAvailable(cellId))
+  console.log('Missing cells count:', missing.length)
+  console.log('Missing cells (first 10):', missing.slice(0, 10))
 }
 
-// Функция для тестирования драг селекта
-const testDragSelection = () => {
-  console.log('=== TEST DRAG SELECTION ===')
-
-  if (filteredGroups.value.length === 0) {
-    alert('Нет групп для тестирования!')
-    return
-  }
-
-  const firstGroup = filteredGroups.value[0]
-  const firstSubgroup = firstGroup.subgroups[0]
-  const secondSubgroup = firstGroup.subgroups[1] || firstSubgroup
-
-  // Тестируем программно без мыши
-  const startCellId = `day-1-slot-1-group-${firstGroup.id}-subgroup-${firstSubgroup.id}`
-  const endCellId = `day-1-slot-2-group-${firstGroup.id}-subgroup-${secondSubgroup.id}`
-
-  console.log('Testing drag from:', startCellId, 'to:', endCellId)
-
-  // Симулируем startSelection
-  globalDragSelection.startSelection(startCellId, {}, false)
-  console.log('After startSelection:', globalDragSelection.selectedCells.value.size)
-
-  // Симулируем updateSelection
-  globalDragSelection.updateSelection(endCellId, {})
-  console.log('After updateSelection:', globalDragSelection.selectedCells.value.size)
-
-  // Симулируем endSelection
-  const result = globalDragSelection.endSelection()
-  console.log('Final result:', result)
-
-  alert(`Результат теста драга:\nСтарт: ${startCellId}\nКонец: ${endCellId}\nВыбрано ячеек: ${result.length}`)
-}
-
-// Инициализация данных (из indexNew.vue)
+// Инициализация данных
 onMounted(async() => {
   try {
     console.log('🚀 Starting data loading...')

@@ -14,7 +14,7 @@
       :loading="loading"
     >
       <template #department-cell="{ row }">
-        {{ row.original.department.name || '-' }}
+        {{ row.original.department?.name || '-' }}
       </template>
       <template #capacity-cell="{ row }">
         {{ row.original.capacity }}
