@@ -47,6 +47,8 @@ export const useDragSelection = () => {
 
     if (!startCoords || !currentCoords) return
 
+    if (startCoords.dayId !== currentCoords.dayId) return
+
     const minSlot = Math.min(startCoords.timeSlotId, currentCoords.timeSlotId)
     const maxSlot = Math.max(startCoords.timeSlotId, currentCoords.timeSlotId)
     const minGroup = Math.min(startCoords.groupId, currentCoords.groupId)
@@ -59,7 +61,7 @@ export const useDragSelection = () => {
     for (let slot = minSlot; slot <= maxSlot; slot++) {
       for (let group = minGroup; group <= maxGroup; group++) {
         for (let subgroup = minSubgroup; subgroup <= maxSubgroup; subgroup++) {
-          const cellId = `slot-${slot}-group-${group}-subgroup-${subgroup}`
+          const cellId = `day-${startCoords.dayId}-slot-${slot}-group-${group}-subgroup-${subgroup}`
           if (isCellAvailable(cellId)) {
             selectedCells.value.add(cellId)
           }
@@ -111,18 +113,19 @@ export const useDragSelection = () => {
   }
 
   const parseCellId = (cellId) => {
-    const match = cellId.match(/slot-(\d+)-group-(\d+)-subgroup-(\d+)/)
+    const match = cellId.match(/day-(\d+)-slot-(\d+)-group-(\d+)-subgroup-(\d+)/)
     if (!match) return null
 
     return {
-      timeSlotId: Number.parseInt(match[1]),
-      groupId: Number.parseInt(match[2]),
-      subgroupId: Number.parseInt(match[3])
+      dayId: Number.parseInt(match[1]),
+      timeSlotId: Number.parseInt(match[2]),
+      groupId: Number.parseInt(match[3]),
+      subgroupId: Number.parseInt(match[4])
     }
   }
 
-  const createCellId = (timeSlotId, groupId, subgroupId) => {
-    return `slot-${timeSlotId}-group-${groupId}-subgroup-${subgroupId}`
+  const createCellId = (dayId, timeSlotId, groupId, subgroupId) => {
+    return `day-${dayId}-slot-${timeSlotId}-group-${groupId}-subgroup-${subgroupId}`
   }
 
   const getSelectionBounds = () => {
@@ -135,6 +138,7 @@ export const useDragSelection = () => {
     if (coords.length === 0) return null
 
     return {
+      dayId: coords[0].dayId,
       minSlot: Math.min(...coords.map(c => c.timeSlotId)),
       maxSlot: Math.max(...coords.map(c => c.timeSlotId)),
       minGroup: Math.min(...coords.map(c => c.groupId)),

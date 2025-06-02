@@ -1,12 +1,12 @@
 <template>
   <div>
     <div class="flex justify-between items-center mb-4">
-      <h2 class="text-xl font-semibold">Управление группами</h2>
+      <h2 class="text-xl font-semibold">Управління групами</h2>
       <UButton
         color="primary"
         @click="openCreateModal"
       >
-        Добавить группу
+        Додати групу
       </UButton>
     </div>
 
@@ -50,7 +50,7 @@
         >
           <div class="flex items-center justify-between p-4 border-b">
             <h3 class="text-lg font-semibold">
-              {{ isEditing ? 'Редактировать группу' : 'Новая группа' }}
+              {{ isEditing ? 'Редагувати групу' : 'Нова група' }}
             </h3>
             <UButton
               color="gray"
@@ -68,11 +68,11 @@
             <div class="space-y-4">
               <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">
-                  Номер группы
+                  Номер групи
                 </label>
                 <UInput
                   v-model="form.number"
-                  placeholder="Введите номер группы"
+                  placeholder="Введіть номер групи"
                   required
                 />
               </div>
@@ -86,7 +86,7 @@
                   class="w-full rounded-md border border-gray-300 px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 >
                   <option value="">
-                    Выберите кафедру
+                    Оберіть кафедру
                   </option>
                   <option
                     v-for="dept in departmentOptions"
@@ -106,14 +106,14 @@
               variant="ghost"
               @click="closeModal"
             >
-              Отмена
+              Скасувати
             </UButton>
             <UButton
               color="primary"
               :loading="submitting"
               @click="handleSubmit"
             >
-              {{ isEditing ? 'Сохранить' : 'Создать' }}
+              {{ isEditing ? 'Зберегти' : 'Створити' }}
             </UButton>
           </div>
         </div>
@@ -134,7 +134,7 @@
         >
           <div class="flex items-center justify-between p-4 border-b">
             <h3 class="text-lg font-semibold">
-              Подтверждение удаления
+              Підтвердження видалення
             </h3>
             <UButton
               color="gray"
@@ -146,7 +146,7 @@
 
           <div class="p-4">
             <p>
-              Вы уверены, что хотите удалить группу "{{ selectedGroup?.number }}"?
+              Ви впевнені, що хочете видалити групу "{{ selectedGroup?.number }}"?
             </p>
           </div>
 
@@ -156,14 +156,14 @@
               variant="ghost"
               @click="closeDeleteModal"
             >
-              Отмена
+              Скасувати
             </UButton>
             <UButton
               color="red"
               :loading="deleting"
               @click="handleDelete"
             >
-              Удалить
+              Видалити
             </UButton>
           </div>
         </div>
@@ -183,7 +183,7 @@ const columns = [
   },
   {
     accessorKey: 'name',
-    header: 'Название'
+    header: 'Назва'
   },
   {
     id: 'department',
@@ -195,7 +195,7 @@ const columns = [
   },
   {
     id: 'actions',
-    header: 'Действия'
+    header: 'Дії'
   }
 ]
 

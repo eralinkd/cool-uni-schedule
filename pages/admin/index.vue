@@ -1,6 +1,6 @@
 <template>
   <div class="container mx-auto p-6">
-    <h1 class="text-2xl font-bold mb-6">Админ панель</h1>
+    <h1 class="text-2xl font-bold mb-6">Адміністративна панель</h1>
 
     <UTabs :items="tabs">
       <template #departments>
@@ -42,23 +42,23 @@ const roomStore = useRoomStore()
 
 const tabs = [
   {
-    label: 'Кафедры',
+    label: 'Кафедри',
     slot: 'departments'
   },
   {
-    label: 'Группы',
+    label: 'Групи',
     slot: 'groups'
   },
   {
-    label: 'Преподаватели',
+    label: 'Викладачі',
     slot: 'professors'
   },
   {
-    label: 'Предметы',
+    label: 'Предмети',
     slot: 'subjects'
   },
   {
-    label: 'Аудитории',
+    label: 'Аудиторії',
     slot: 'rooms'
   }
 ]

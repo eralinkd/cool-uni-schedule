@@ -1,21 +1,18 @@
 <template>
   <tr class="border-b border-gray-200 hover:bg-gray-50">
-    <td class="sticky left-0 z-10 bg-white border-r border-gray-200 p-2 text-xs text-gray-600 w-16">
-      {{ dayLabel }}
-    </td>
-
-    <td class="sticky left-16 z-10 bg-white border-r border-gray-200 p-2 text-xs font-medium text-gray-900 w-20">
+    <td class="sticky left-0 z-10 bg-white border-r border-gray-200 p-2 text-xs font-medium text-gray-900 w-20">
       {{ timeSlot.time }}
     </td>
 
     <template v-for="group in groups" :key="`row-${group.id}`">
       <ScheduleCell
         v-for="subgroup in group.subgroups"
-        :key="`cell-${timeSlot.id}-${group.id}-${subgroup.id}`"
+        :key="`cell-${day.id}-${timeSlot.id}-${group.id}-${subgroup.id}`"
+        :day="day"
         :time-slot="timeSlot"
         :group="group"
         :subgroup="subgroup"
-        :lesson-data="getLessonData(timeSlot.id, group.id, subgroup.id)"
+        :lesson-data="getLessonData(day.id, timeSlot.id, group.id, subgroup.id)"
         @select="$emit('cell-select', $event)"
         @edit="$emit('cell-edit', $event)"
         @drag-end="handleDragEnd"
@@ -26,6 +23,10 @@
 
 <script setup>
 const props = defineProps({
+  day: {
+    type: Object,
+    required: true
+  },
   timeSlot: {
     type: Object,
     required: true
@@ -42,12 +43,8 @@ const props = defineProps({
 
 const emit = defineEmits(['cell-select', 'cell-edit', 'drag-selection'])
 
-const dayLabel = computed(() => {
-  return props.timeSlot.period === 1 ? 'понед' : ''
-})
-
-const getLessonData = (timeSlotId, groupId, subgroupId) => {
-  const key = `slot-${timeSlotId}-group-${groupId}-subgroup-${subgroupId}`
+const getLessonData = (dayId, timeSlotId, groupId, subgroupId) => {
+  const key = `day-${dayId}-slot-${timeSlotId}-group-${groupId}-subgroup-${subgroupId}`
   return props.scheduleData[key] || null
 }
 

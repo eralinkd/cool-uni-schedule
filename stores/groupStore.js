@@ -17,10 +17,19 @@ export const useGroupStore = defineStore('group', () => {
       return groups
     }
 
-    return groups.map(group => ({
-      ...group,
-      department: departments.find(dept => dept.id === group.departmentId) || null
-    }))
+    return groups.map((group) => {
+      // Генерируем подгруппы, если их нет
+      const subgroups = group.subgroups || [
+        { id: `${group.id}-1`, name: '1' },
+        { id: `${group.id}-2`, name: '2' }
+      ]
+
+      return {
+        ...group,
+        department: departments.find(dept => dept.id === group.departmentId) || null,
+        subgroups
+      }
+    })
   }
 
   const fetchGroups = async() => {
@@ -125,7 +134,7 @@ export const useGroupStore = defineStore('group', () => {
 
   // Вспомогательные методы для фильтрации
   const getGroupsByDepartment = (departmentId) => {
-    return groups.value.filter(g => g.department?.id === departmentId)
+    return groups.value.filter(g => g.departmentId === departmentId)
   }
 
   const getGroupsByCourse = (course) => {
@@ -134,7 +143,7 @@ export const useGroupStore = defineStore('group', () => {
 
   const getGroupsByDepartmentAndCourse = (departmentId, course) => {
     return groups.value.filter(g =>
-      g.department?.id === departmentId
+      g.departmentId === departmentId
       && g.course === course
     )
   }

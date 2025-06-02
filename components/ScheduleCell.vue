@@ -60,6 +60,10 @@
 import { onMounted, onUnmounted } from 'vue'
 
 const props = defineProps({
+  day: {
+    type: Object,
+    required: true
+  },
   timeSlot: {
     type: Object,
     required: true
@@ -101,7 +105,7 @@ else {
 
 const cellId = computed(() => {
   if (!dragSelection) return null
-  return dragSelection.createCellId(props.timeSlot.id, props.group.id, props.subgroup.id)
+  return `day-${props.day.id}-slot-${props.timeSlot.id}-group-${props.group.id}-subgroup-${props.subgroup.id}`
 })
 
 const hasLesson = computed(() => {
@@ -145,6 +149,7 @@ const handleGlobalMouseMove = (event) => {
       if (!dragSelection || !cellId.value) return
 
       const cellData = {
+        day: props.day,
         timeSlot: props.timeSlot,
         group: props.group,
         subgroup: props.subgroup,
@@ -161,6 +166,7 @@ const handleMouseEnter = () => {
   if (!dragSelection || !dragSelection.isSelecting.value || !cellId.value) return
 
   const cellData = {
+    day: props.day,
     timeSlot: props.timeSlot,
     group: props.group,
     subgroup: props.subgroup,
@@ -220,6 +226,7 @@ const handleCellClick = (event) => {
   }
 
   const cellData = {
+    day: props.day,
     timeSlot: props.timeSlot,
     group: props.group,
     subgroup: props.subgroup,
@@ -241,6 +248,7 @@ const handleRightClick = (event) => {
 
 const handleDoubleClick = () => {
   const cellData = {
+    day: props.day,
     timeSlot: props.timeSlot,
     group: props.group,
     subgroup: props.subgroup,

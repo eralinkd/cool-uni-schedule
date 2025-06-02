@@ -24,17 +24,29 @@ export const useScheduleStore = defineStore('schedule', () => {
   const scheduleDataForTable = computed(() => {
     const data = {}
 
+    // Проверяем, что scheduleEntries.value является массивом
+    if (!Array.isArray(scheduleEntries.value)) {
+      console.warn('scheduleEntries is not an array:', scheduleEntries.value)
+      return data
+    }
+
     scheduleEntries.value.forEach((entry) => {
+      // Дополнительная проверка, что entry существует
+      if (!entry) return
+
+      // Получаем день недели из даты или используем dayOfWeek поле
+      const dayOfWeek = entry.dayOfWeek || 1 // По умолчанию понедельник
+
       // Формируем ключи для каждой подгруппы
       entry.subgroups?.forEach((subgroup) => {
-        const key = `slot-${getTimeSlotId(entry.startTime)}-group-${subgroup.group.id}-subgroup-${subgroup.id}`
+        const key = `day-${dayOfWeek}-slot-${getTimeSlotId(entry.startTime)}-group-${subgroup.group.id}-subgroup-${subgroup.id}`
 
         data[key] = {
           id: entry.id,
           subject: entry.subject?.name || '',
           professor: entry.professor
             ? `${entry.professor.firstName} ${entry.professor.lastName}`
-: '',
+            : '',
           room: entry.rooms?.[0]?.name || '',
           dates: entry.dates?.map(d => d.date).join(', ') || '',
           platform: entry.isOnline ? entry.onlineLink : '',
@@ -67,12 +79,22 @@ export const useScheduleStore = defineStore('schedule', () => {
     loading.value = true
     try {
       const response = await getScheduleFilter(filterData)
-      scheduleEntries.value = response
-      return response
+
+      // Проверяем, что response является массивом
+      if (Array.isArray(response)) {
+        scheduleEntries.value = response
+      }
+      else {
+        console.warn('Schedule API returned non-array data:', response)
+        scheduleEntries.value = []
+      }
+
+      return scheduleEntries.value
     }
     catch (error) {
       showNotivue(true, 'Failed to load schedule')
       console.error('Error loading schedule:', error)
+      scheduleEntries.value = []
     }
     finally {
       $loader.hide()

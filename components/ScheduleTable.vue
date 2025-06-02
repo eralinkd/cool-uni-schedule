@@ -1,22 +1,29 @@
 <template>
-  <div class="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
-    <div class="overflow-x-auto">
-      <table class="w-full table-fixed border-collapse">
-        <ScheduleTableHeader :groups="groups" />
+  <div class="space-y-6">
+    <!-- Отдельная таблица для каждого дня недели -->
+    <div v-for="day in weekDays" :key="day.id">
+      <h3 class="text-lg font-semibold mb-2">{{ day.name }}</h3>
+      <div class="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
+        <div class="overflow-x-auto">
+          <table class="w-full table-fixed border-collapse">
+            <ScheduleTableHeader :groups="groups" />
 
-        <tbody>
-          <ScheduleTableRow
-            v-for="timeSlot in timeSlots"
-            :key="timeSlot.id"
-            :time-slot="timeSlot"
-            :groups="groups"
-            :schedule-data="scheduleData"
-            @cell-select="$emit('cell-select', $event)"
-            @cell-edit="$emit('cell-edit', $event)"
-            @drag-selection="handleDragSelection"
-          />
-        </tbody>
-      </table>
+            <tbody>
+              <ScheduleTableRow
+                v-for="timeSlot in timeSlots"
+                :key="`${day.id}-${timeSlot.id}`"
+                :day="day"
+                :time-slot="timeSlot"
+                :groups="groups"
+                :schedule-data="scheduleData"
+                @cell-select="$emit('cell-select', $event)"
+                @cell-edit="$emit('cell-edit', $event)"
+                @drag-selection="handleDragSelection"
+              />
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -38,6 +45,15 @@ defineProps({
 })
 
 const emit = defineEmits(['cell-select', 'cell-edit', 'drag-selection'])
+
+// Дни недели
+const weekDays = [
+  { id: 1, name: 'Понедельник' },
+  { id: 2, name: 'Вторник' },
+  { id: 3, name: 'Среда' },
+  { id: 4, name: 'Четверг' },
+  { id: 5, name: 'Пятница' }
+]
 
 const handleDragSelection = (selection) => {
   console.log('Table drag selection:', selection)

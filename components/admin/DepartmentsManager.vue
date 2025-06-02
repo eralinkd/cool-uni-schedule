@@ -1,16 +1,14 @@
 <template>
   <div>
     <div class="flex justify-between items-center mb-4">
-      <h2 class="text-xl font-semibold">Управление кафедрами</h2>
+      <h2 class="text-xl font-semibold">Управління кафедрами</h2>
       <UButton
         color="primary"
         @click="openCreateModal"
       >
-        Добавить кафедру
+        Додати кафедру
       </UButton>
     </div>
-
-    <div>Loading: {{ loading }}</div>
 
     <UTable
       :data="departments"
@@ -49,7 +47,7 @@
         >
           <div class="flex items-center justify-between p-4 border-b">
             <h3 class="text-lg font-semibold">
-              {{ isEditing ? 'Редактировать кафедру' : 'Новая кафедра' }}
+              {{ isEditing ? 'Редагувати кафедру' : 'Нова кафедра' }}
             </h3>
             <UButton
               color="gray"
@@ -63,11 +61,11 @@
             <div class="space-y-4">
               <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">
-                  Название
+                  Назва
                 </label>
                 <UInput
                   v-model="form.name"
-                  placeholder="Введите название кафедры"
+                  placeholder="Введіть назву кафедри"
                   required
                 />
               </div>
@@ -80,14 +78,14 @@
               variant="ghost"
               @click="closeModal"
             >
-              Отмена
+              Скасувати
             </UButton>
             <UButton
               color="primary"
               :loading="submitting"
               @click="handleSubmit"
             >
-              {{ isEditing ? 'Сохранить' : 'Создать' }}
+              {{ isEditing ? 'Зберегти' : 'Створити' }}
             </UButton>
           </div>
         </div>
@@ -108,7 +106,7 @@
         >
           <div class="flex items-center justify-between p-4 border-b">
             <h3 class="text-lg font-semibold">
-              Подтверждение удаления
+              Підтвердження видалення
             </h3>
             <UButton
               color="gray"
@@ -119,7 +117,7 @@
           </div>
 
           <div class="p-4">
-            <p>Вы уверены, что хотите удалить кафедру "{{ selectedDepartment?.name }}"?</p>
+            <p>Ви впевнені, що хочете видалити кафедру "{{ selectedDepartment?.name }}"?</p>
           </div>
 
           <div class="flex justify-end gap-3 p-4 border-t">
@@ -128,14 +126,14 @@
               variant="ghost"
               @click="closeDeleteModal"
             >
-              Отмена
+              Скасувати
             </UButton>
             <UButton
               color="red"
               :loading="deleting"
               @click="handleDelete"
             >
-              Удалить
+              Видалити
             </UButton>
           </div>
         </div>
@@ -154,11 +152,11 @@ const columns = [
   },
   {
     accessorKey: 'name',
-    header: 'Название'
+    header: 'Назва'
   },
   {
     id: 'actions',
-    header: 'Действия'
+    header: 'Дії'
   }
 ]
 

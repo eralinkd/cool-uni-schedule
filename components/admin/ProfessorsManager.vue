@@ -1,12 +1,12 @@
 <template>
   <div>
     <div class="flex justify-between items-center mb-4">
-      <h2 class="text-xl font-semibold">Управление преподавателями</h2>
+      <h2 class="text-xl font-semibold">Управління викладачами</h2>
       <UButton
         color="primary"
         @click="openCreateModal"
       >
-        Добавить преподавателя
+        Додати викладача
       </UButton>
     </div>
 
@@ -50,7 +50,7 @@
         >
           <div class="flex items-center justify-between p-4 border-b">
             <h3 class="text-lg font-semibold">
-              {{ isEditing ? 'Редактировать преподавателя' : 'Новый преподаватель' }}
+              {{ isEditing ? 'Редагувати викладача' : 'Новий викладач' }}
             </h3>
             <UButton
               color="gray"
@@ -68,21 +68,21 @@
             <div class="space-y-4">
               <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">
-                  Имя
+                  Імя
                 </label>
                 <UInput
                   v-model="form.firstName"
-                  placeholder="Введите имя"
+                  placeholder="Введіть імя"
                   required
                 />
               </div>
               <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">
-                  Фамилия
+                  Фамілія
                 </label>
                 <UInput
                   v-model="form.lastName"
-                  placeholder="Введите фамилию"
+                  placeholder="Введіть фамілію"
                   required
                 />
               </div>
@@ -93,26 +93,31 @@
                 <UInput
                   v-model="form.email"
                   type="email"
-                  placeholder="Введите email"
+                  placeholder="Введіть email"
                   required
                 />
               </div>
               <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">
-                  Кафедры
+                  Логін
+                </label>
+                <UInput
+                  v-model="form.username"
+                  placeholder="Введіть логін"
+                  required
+                />
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">
+                  Кафедра
                 </label>
                 <select
-                  v-model="form.departmentIds"
-                  multiple
+                  v-model="form.departmentId"
+                  required
                   class="w-full rounded-md border border-gray-300 px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  style="min-height: 80px;"
                 >
-                  <option
-                    v-for="dept in departmentOptions"
-                    :key="dept.value"
-                    :value="dept.value"
-                  >
-                    {{ dept.label }}
+                  <option value="">
+                    Оберіть кафедру
                   </option>
                 </select>
               </div>
@@ -125,14 +130,14 @@
               variant="ghost"
               @click="closeModal"
             >
-              Отмена
+              Відміна
             </UButton>
             <UButton
               color="primary"
               :loading="submitting"
               @click="handleSubmit"
             >
-              {{ isEditing ? 'Сохранить' : 'Создать' }}
+              {{ isEditing ? 'Зберегти' : 'Створити' }}
             </UButton>
           </div>
         </div>
@@ -153,7 +158,7 @@
         >
           <div class="flex items-center justify-between p-4 border-b">
             <h3 class="text-lg font-semibold">
-              Подтверждение удаления
+              Підтвердження видалення
             </h3>
             <UButton
               color="gray"
@@ -165,7 +170,7 @@
 
           <div class="p-4">
             <p>
-              Вы уверены, что хотите удалить преподавателя
+              Ви впевнені, що хочете видалити викладача
               "{{ selectedProfessor?.firstName }} {{ selectedProfessor?.lastName }}"?
             </p>
           </div>
@@ -176,14 +181,14 @@
               variant="ghost"
               @click="closeDeleteModal"
             >
-              Отмена
+              Відміна
             </UButton>
             <UButton
               color="red"
               :loading="deleting"
               @click="handleDelete"
             >
-              Удалить
+              Видалити
             </UButton>
           </div>
         </div>
@@ -203,11 +208,11 @@ const columns = [
   },
   {
     accessorKey: 'firstName',
-    header: 'Имя'
+    header: 'Імя'
   },
   {
     accessorKey: 'lastName',
-    header: 'Фамилия'
+    header: 'Фамілія'
   },
   {
     accessorKey: 'email',
@@ -215,11 +220,11 @@ const columns = [
   },
   {
     id: 'departments',
-    header: 'Кафедры'
+    header: 'Кафедри'
   },
   {
     id: 'actions',
-    header: 'Действия'
+    header: 'Дії'
   }
 ]
 
@@ -251,7 +256,8 @@ const form = ref({
   firstName: '',
   lastName: '',
   email: '',
-  departmentIds: []
+  departmentId: '',
+  username: ''
 })
 
 // Methods
@@ -261,7 +267,8 @@ const openCreateModal = () => {
     firstName: '',
     lastName: '',
     email: '',
-    departmentIds: []
+    departmentId: '',
+    username: ''
   }
   isModalOpen.value = true
 }
@@ -273,7 +280,8 @@ const openEditModal = (professor) => {
     firstName: professor.firstName,
     lastName: professor.lastName,
     email: professor.email,
-    departmentIds: professor.departments?.map(d => d.id) || []
+    departmentId: professor.department?.id || '',
+    username: professor.username || ''
   }
   isModalOpen.value = true
 }
@@ -284,7 +292,8 @@ const closeModal = () => {
     firstName: '',
     lastName: '',
     email: '',
-    departmentIds: []
+    departmentId: '',
+    username: ''
   }
   selectedProfessor.value = null
 }

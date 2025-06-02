@@ -1,12 +1,12 @@
 <template>
   <div>
     <div class="flex justify-between items-center mb-4">
-      <h2 class="text-xl font-semibold">Управление аудиториями</h2>
+      <h2 class="text-xl font-semibold">Управління аудиторіями</h2>
       <UButton
         color="primary"
         @click="openCreateModal"
       >
-        Добавить аудиторию
+        Додати аудиторію
       </UButton>
     </div>
 
@@ -47,7 +47,7 @@
         >
           <div class="flex items-center justify-between p-4 border-b">
             <h3 class="text-lg font-semibold">
-              {{ isEditing ? 'Редактировать аудиторию' : 'Новая аудитория' }}
+              {{ isEditing ? 'Редагувати аудиторію' : 'Нова аудиторія' }}
             </h3>
             <UButton
               color="gray"
@@ -65,43 +65,24 @@
             <div class="space-y-4">
               <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">
-                  Номер
+                  Назва
                 </label>
                 <UInput
-                  v-model="form.number"
-                  placeholder="Введите номер аудитории"
+                  v-model="form.name"
+                  placeholder="Введіть назву аудиторії"
                   required
                 />
               </div>
               <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">
-                  Тип
-                </label>
-                <select
-                  v-model="form.type"
-                  class="w-full rounded-md border border-gray-300 px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                >
-                  <option value="">
-                    Выберите тип аудитории
-                  </option>
-                  <option
-                    v-for="type in roomTypeOptions"
-                    :key="type.value"
-                    :value="type.value"
-                  >
-                    {{ type.label }}
-                  </option>
-                </select>
-              </div>
-              <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">
-                  Вместимость
+                  Місткість
                 </label>
                 <UInput
-                  v-model="form.capacity"
+                  v-model.number="form.capacity"
                   type="number"
-                  placeholder="Введите вместимость"
+                  placeholder="Введіть місткість"
                   min="1"
+                  required
                 />
               </div>
             </div>
@@ -113,14 +94,14 @@
               variant="ghost"
               @click="closeModal"
             >
-              Отмена
+              Скасувати
             </UButton>
             <UButton
               color="primary"
               :loading="submitting"
               @click="handleSubmit"
             >
-              {{ isEditing ? 'Сохранить' : 'Создать' }}
+              {{ isEditing ? 'Зберегти' : 'Створити' }}
             </UButton>
           </div>
         </div>
@@ -141,7 +122,7 @@
         >
           <div class="flex items-center justify-between p-4 border-b">
             <h3 class="text-lg font-semibold">
-              Подтверждение удаления
+              Підтвердження видалення
             </h3>
             <UButton
               color="gray"
@@ -153,7 +134,7 @@
 
           <div class="p-4">
             <p>
-              Вы уверены, что хотите удалить аудиторию "{{ selectedRoom?.number }}"?
+              Ви впевнені, що хочете видалити аудиторію "{{ selectedRoom?.name }}"?
             </p>
           </div>
 
@@ -163,14 +144,14 @@
               variant="ghost"
               @click="closeDeleteModal"
             >
-              Отмена
+              Скасувати
             </UButton>
             <UButton
               color="red"
               :loading="deleting"
               @click="handleDelete"
             >
-              Удалить
+              Видалити
             </UButton>
           </div>
         </div>
@@ -189,19 +170,15 @@ const columns = [
   },
   {
     accessorKey: 'name',
-    header: 'Название'
+    header: 'Назва'
   },
   {
     accessorKey: 'capacity',
-    header: 'Вместимость'
-  },
-  {
-    accessorKey: 'type',
-    header: 'Тип'
+    header: 'Місткість'
   },
   {
     id: 'actions',
-    header: 'Действия'
+    header: 'Дії'
   }
 ]
 
@@ -227,7 +204,7 @@ const submitting = ref(false)
 const deleting = ref(false)
 
 const form = ref({
-  number: '',
+  name: '',
   capacity: null,
   type: null
 })
@@ -236,7 +213,7 @@ const form = ref({
 const openCreateModal = () => {
   isEditing.value = false
   form.value = {
-    number: '',
+    name: '',
     capacity: null,
     type: null
   }
@@ -247,7 +224,7 @@ const openEditModal = (room) => {
   isEditing.value = true
   selectedRoom.value = room
   form.value = {
-    number: room.number,
+    name: room.name,
     capacity: room.capacity,
     type: room.type
   }
@@ -257,7 +234,7 @@ const openEditModal = (room) => {
 const closeModal = () => {
   isModalOpen.value = false
   form.value = {
-    number: '',
+    name: '',
     capacity: null,
     type: null
   }
@@ -275,8 +252,8 @@ const closeDeleteModal = () => {
 }
 
 const handleSubmit = async() => {
-  if (!form.value.number.trim()) {
-    console.error('Number is required')
+  if (!form.value.name.trim()) {
+    console.error('Name is required')
     return
   }
 
