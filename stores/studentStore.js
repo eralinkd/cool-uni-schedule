@@ -2,7 +2,6 @@ import { defineStore } from 'pinia'
 import { useStudentApi } from '~/api/studentApi'
 import { useShowNotivue } from '~/composables/useNotivue'
 import { useGroupStore } from '~/stores/groupStore'
-import { useSubgroupStore } from '~/stores/subgroupStore'
 
 export const useStudentStore = defineStore('student', () => {
   const { $loader } = useNuxtApp()
@@ -16,13 +15,10 @@ export const useStudentStore = defineStore('student', () => {
   /* ---------- helpers ---------- */
   const enrich = (raw) => {
     const groupStore = useGroupStore()
-    const subgroupStore = useSubgroupStore()
 
     return raw.map(st => ({
       ...st,
-      group: groupStore.groups.find(g => g.id === st.group) || null,
-      subgroup: subgroupStore.subgroups.find(s => s.id === st.subgroup) || null
-    }))
+      group: groupStore.groups.find(g => g.id === st.group) || null }))
   }
 
   /* ---------- actions ---------- */

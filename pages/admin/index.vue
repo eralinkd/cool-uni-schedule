@@ -2,9 +2,9 @@
 import DepartmentsManager from '~/components/admin/DepartmentsManager.vue'
 import GroupsManager from '~/components/admin/GroupsManager.vue'
 import ProfessorsManager from '~/components/admin/ProfessorsManager.vue'
-import SubjectsManager from '~/components/admin/SubjectsManager.vue'
 import RoomsManager from '~/components/admin/RoomsManager.vue'
 import StudentsManager from '~/components/admin/StudentsManager.vue'
+import SubjectsManager from '~/components/admin/SubjectsManager.vue'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -22,7 +22,7 @@ onMounted(async() => {
 })
 
 /** При клике на кнопку «Конструктор» */
-const goToScheduleBuilder = () => router.push('/admin/schedule')
+const goToScheduleBuilder = () => router.push('/')
 </script>
 
 <template>

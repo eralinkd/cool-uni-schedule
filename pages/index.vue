@@ -1,5 +1,18 @@
 <template>
-  <div class="space-y-6">
+  <div class="space-y-6 pb-20">
+    <div v-if="isStudent" class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+      <div class="flex items-center space-x-2">
+        <UIcon
+          name="i-heroicons-information-circle"
+          class="w-5 h-5 text-blue-600"
+        />
+        <div class="text-blue-800">
+          <p class="font-medium">Режим перегляду</p>
+          <p class="text-sm">Ви переглядаєте розклад у режимі тільки для читання</p>
+        </div>
+      </div>
+    </div>
+
     <ScheduleHeader
       :semester="currentSemester"
       :week="currentWeek"
@@ -7,6 +20,7 @@
       :selected-department-id="selectedDepartmentId"
       :selected-course="selectedCourse"
       :departments="departments"
+      :can-edit="canEditSchedule"
       @week-change="handleWeekChange"
       @department-change="handleDepartmentChange"
       @course-change="handleCourseChange"
@@ -17,59 +31,14 @@
       :schedule-data="scheduleData"
       :groups="filteredGroups"
       :time-slots="timeSlots"
+      :can-edit="canEditSchedule"
       @cell-select="handleCellSelect"
       @cell-edit="handleCellEdit"
       @drag-selection="handleDragSelection"
     />
 
-    <!-- Дебаг информация -->
-    <div class="p-2 bg-yellow-50 border rounded text-xs">
-      <p>
-        <strong>Департамент:</strong> {{ selectedDepartmentId }},
-        <strong>Курс:</strong> {{ selectedCourse }}
-      </p>
-      <p>
-        <strong>Данные:</strong>
-        departments={{ departments.length }},
-        groups={{ groups.length }},
-        filteredGroups={{ filteredGroups.length }},
-        subjects={{ subjects.length }},
-        professors={{ professors.length }},
-        rooms={{ rooms.length }},
-        scheduleEntries={{ Object.keys(scheduleData).length }}
-      </p>
-      <p v-if="filteredGroups.length > 0">
-        <strong>Группы:</strong> {{ filteredGroups.map(g => g.name).join(', ') }}
-      </p>
-      <p v-if="filteredGroups.length > 0">
-        <strong>ID групп:</strong> {{ filteredGroups.map(g => g.id).join(', ') }}
-      </p>
-      <p v-if="filteredGroups.length > 0 && filteredGroups[0].subgroups">
-        <strong>Подгруппы первой группы:</strong>
-        {{ filteredGroups[0].subgroups.map(s => `${s.name}(${s.id})`).join(', ') }}
-      </p>
-      <p v-if="Object.keys(scheduleData).length > 0">
-        <strong>Расписание (первые 3):</strong>
-        <span
-          v-for="(entry, key, index) in scheduleData"
-          :key="key"
-          class="block text-xs"
-        >
-          <span v-if="index < 3">{{ key }}: {{ entry.subject }} ({{ entry.professor }})</span>
-        </span>
-      </p>
-    </div>
-
-    <div v-if="selectedCount > 0" class="p-4 bg-gray-100 rounded text-sm">
+    <div v-if="selectedCount > 0 && canEditSchedule" class="p-4 bg-gray-100 rounded text-sm">
       <div class="flex items-center justify-between">
-        <div>
-          <h3 class="font-medium mb-1">Выбрано ячеек: {{ selectedCount }}</h3>
-          <p class="text-gray-600 text-xs">
-            • Клик - добавить/убрать ячейку<br />
-            • Перетаскивание - добавить область к выбору<br />
-            • Shift+клик или правая кнопка - очистить весь выбор
-          </p>
-        </div>
         <div class="flex items-center space-x-2">
           <button
             class="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 text-sm font-medium"
@@ -87,31 +56,6 @@
       </div>
     </div>
 
-    <!-- Альтернативная кнопка для тестирования -->
-    <div class="p-4 bg-blue-50 rounded text-sm mt-4">
-      <h3 class="font-medium mb-2">🧪 Тестування модального вікна:</h3>
-      <div class="space-x-2">
-        <button
-          class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 text-sm font-medium"
-          @click="testCreateModal"
-        >
-          Тест створення заняття
-        </button>
-        <button
-          class="px-4 py-2 bg-purple-500 text-white rounded hover:bg-purple-600 text-sm font-medium"
-          @click="debugAvailableCells"
-        >
-          Показати доступні ячейки
-        </button>
-        <button
-          class="px-4 py-2 bg-orange-500 text-white rounded hover:bg-orange-600 text-sm font-medium"
-          @click="testDragSelection"
-        >
-          Тест драг селекту
-        </button>
-      </div>
-    </div>
-
     <!-- Модальное окно создания занятия -->
     <CreateLessonModal
       v-if="showCreateModal"
@@ -121,6 +65,25 @@
       :rooms="rooms"
       @close="closeCreateModal"
       @save="handleLessonCreate"
+    />
+
+    <!-- Модальное окно редактирования занятия -->
+    <EditLessonModal
+      v-if="showEditModal"
+      :lesson-data="editingLessonData"
+      :subjects="subjects"
+      :professors="professors"
+      :rooms="rooms"
+      @close="closeEditModal"
+      @save="handleLessonEdit"
+    />
+
+    <!-- Модальное окно удаления занятия -->
+    <DeleteLessonModal
+      v-if="showDeleteModal"
+      :lesson-data="deletingLessonData"
+      @close="closeDeleteModal"
+      @confirm="handleLessonDelete"
     />
 
     <!-- Модальное окно рекомендации аудитории -->
@@ -135,7 +98,7 @@
 </template>
 
 <script setup>
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 
 const { getCurrentWeekNumber, getWeekInfo } = useAcademicWeeks()
 
@@ -149,6 +112,12 @@ const departmentStore = useDepartmentStore()
 const professorStore = useProfessorStore()
 const subjectStore = useSubjectStore()
 const roomStore = useRoomStore()
+const authStore = useAuthStore()
+const studentStore = useStudentStore()
+
+// Проверяем роль пользователя
+const isStudent = computed(() => authStore.roles.includes('ROLE_STUDENT'))
+const canEditSchedule = computed(() => !isStudent.value)
 
 const selectedCount = computed(() => globalDragSelection.selectedCells.value.size)
 
@@ -192,6 +161,17 @@ const professors = computed(() => {
   })
 })
 
+// Получаем данные текущего студента
+const currentStudent = computed(() => {
+  if (!isStudent.value) {
+    return null
+  }
+
+  // Используем первого студента для тестирования, но добавляем безопасные проверки
+  const foundStudent = studentStore.students?.[0]
+  return foundStudent || null
+})
+
 // Группы фильтруем через метод store (из indexNew.vue)
 const groups = computed(() => {
   if (!selectedDepartmentId.value) return []
@@ -226,90 +206,49 @@ const selectedCourse = ref(1)
 
 // Состояние модальных окон
 const showCreateModal = ref(false)
+const showEditModal = ref(false)
+const showDeleteModal = ref(false)
 const showRoomModal = ref(false)
 const createdLessonData = ref(null)
+const editingLessonData = ref(null)
+const deletingLessonData = ref(null)
 const recommendedRooms = ref([])
 
-// Фильтрованные группы по курсу с генерацией подгрупп (из indexNew.vue)
 const filteredGroups = computed(() => {
   if (!Array.isArray(groups.value)) {
-    console.log('Groups is not an array:', groups.value)
     return []
   }
 
-  console.log('Groups before course filter:', groups.value)
+  if (isStudent.value) {
+    // Безопасные проверки для студента
+    if (!currentStudent.value || !currentStudent.value.group?.id) {
+      console.warn('Student has no group information')
+      return []
+    }
 
-  // Проверяем, есть ли поле course у групп
-  const sampleGroup = groups.value[0]
-  if (sampleGroup) {
-    console.log('Sample group structure:', sampleGroup)
-    console.log('Available fields:', Object.keys(sampleGroup))
+    const studentGroupId = currentStudent.value.group.id
+    const studentGroup = groups.value.find(group => group.id === studentGroupId)
+
+    if (studentGroup) {
+      return [studentGroup]
+    }
+    else {
+      return []
+    }
   }
+
+  const sampleGroup = groups.value[0]
 
   // Временно отключаем фильтрацию по курсу если поля course нет
   let courseFiltered = groups.value
   if (sampleGroup && 'course' in sampleGroup) {
     courseFiltered = groups.value.filter(group => group.course === selectedCourse.value)
-    console.log('Filtered by course:', courseFiltered)
   }
-  else {
-    console.log('No course field found, showing all groups from department')
-  }
-
-  // Убеждаемся, что у каждой группы есть подгруппы
-  const withSubgroups = courseFiltered.map((group) => {
-    console.log(`Processing group ${group.name}, current subgroups:`, group.subgroups)
-
-    if (!group.subgroups || group.subgroups.length === 0) {
-      const newGroup = {
-        ...group,
-        subgroups: [
-          { id: `${group.id}_sub_1`, name: 'підгрупа 1' },
-          { id: `${group.id}_sub_2`, name: 'підгрупа 2' },
-          { id: `${group.id}_sub_3`, name: 'підгрупа 3' },
-          { id: `${group.id}_sub_4`, name: 'підгрупа 4' },
-          { id: `${group.id}_sub_5`, name: 'підгрупа 5' }
-        ]
-      }
-      console.log(`Generated subgroups for ${group.name}:`, newGroup.subgroups)
-      return newGroup
-    }
-    console.log(`Group ${group.name} already has subgroups:`, group.subgroups)
-    return group
-  })
-
-  console.log('Final filtered groups with subgroups:', withSubgroups)
-  return withSubgroups
+  return courseFiltered
 })
 
-// Отслеживаем изменения в фильтрованных группах (упрощенная версия из старого index.vue)
-watch(filteredGroups, (newGroups, oldGroups) => {
-  // Очищаем выделение при изменении списка групп
-  globalDragSelection.clearSelection()
-
-  // Не очищаем ячейки при первом запуске (когда oldGroups undefined)
-  if (!oldGroups) {
-    console.log('First filteredGroups load, skipping cell clearing')
-    return
-  }
-
-  // Очищаем зарегистрированные ячейки только если действительно изменился состав групп
-  const oldGroupIds = oldGroups?.map(g => g.id).sort().join(',') || ''
-  const newGroupIds = newGroups?.map(g => g.id).sort().join(',') || ''
-
-  if (oldGroupIds !== newGroupIds) {
-    console.log('Groups composition changed, clearing available cells')
-    console.log('Old group IDs:', oldGroupIds)
-    console.log('New group IDs:', newGroupIds)
-    globalDragSelection.clearAvailableCells()
-  }
-  else {
-    console.log('Groups composition unchanged, keeping available cells')
-  }
-}, { deep: true })
-
 const timeSlots = ref([
-  { id: 1, time: '9:00-10:20', period: 1 },
+  { id: 1, time: '09:00-10:20', period: 1 },
   { id: 2, time: '10:30-11:50', period: 2 },
   { id: 3, time: '12:10-13:30', period: 3 },
   { id: 4, time: '13:40-15:00', period: 4 },
@@ -319,21 +258,15 @@ const timeSlots = ref([
 // Расписание из scheduleStore преобразованное для отображения
 const scheduleData = computed(() => {
   const apiScheduleRaw = scheduleStore.entries // Используем entries вместо flatMap
-  console.log('Raw API schedule data:', apiScheduleRaw)
-  console.log('Type of API schedule:', typeof apiScheduleRaw)
-  console.log('Is array:', Array.isArray(apiScheduleRaw))
 
   // Безопасная проверка что данные являются массивом
   const apiSchedule = Array.isArray(apiScheduleRaw) ? apiScheduleRaw : []
 
   if (!Array.isArray(apiScheduleRaw)) {
-    console.warn('scheduleStore.entries is not an array:', apiScheduleRaw)
     return {}
   }
 
   const transformedSchedule = {}
-
-  console.log('Transforming API schedule:', apiSchedule)
 
   for (const lesson of apiSchedule) {
     try {
@@ -360,7 +293,8 @@ const scheduleData = computed(() => {
 
       const timeSlot = timeSlots.value.find((slot) => {
         const [slotStart] = slot.time.split('-')
-        return slotStart === timeString
+        const matches = slotStart === timeString
+        return matches
       })
 
       if (!timeSlot) {
@@ -370,6 +304,7 @@ const scheduleData = computed(() => {
       // Создаем данные для отображения
       const typeLabel = lesson.type === 'LECTURE' ? 'Лек' : lesson.type === 'LABORATORY' ? 'Лаб' : 'Пр'
       const lessonDisplay = {
+        id: lesson.id,
         subject: subject ? `${subject.name} (${typeLabel})` : `Предмет ${lesson.subject}`,
         professor: professor ? professor.name : `Викладач ${lesson.professor}`,
         room: room ? room.name : `Ауд. ${lesson.rooms?.[0] || 'невідома'}`,
@@ -392,23 +327,8 @@ const scheduleData = computed(() => {
       // Если есть группы, создаем ячейки для каждой группы
       if (lesson.groups && lesson.groups.length > 0) {
         for (const groupId of lesson.groups) {
-          if (lesson.subgroups && lesson.subgroups.length > 0) {
-            // Используем указанные подгруппы
-            for (const subgroupId of lesson.subgroups) {
-              const cellKey = `day-${dayId}-slot-${timeSlot.id}-group-${groupId}-subgroup-${subgroupId}`
-              transformedSchedule[cellKey] = lessonDisplay
-            }
-          }
-          else {
-            // Если подгрупп нет, создаем для всех подгрупп группы
-            const group = filteredGroups.value.find(g => g.id === groupId)
-            if (group && group.subgroups) {
-              for (const subgroup of group.subgroups) {
-                const cellKey = `day-${dayId}-slot-${timeSlot.id}-group-${groupId}-subgroup-${subgroup.id}`
-                transformedSchedule[cellKey] = lessonDisplay
-              }
-            }
-          }
+          const cellKey = `day-${dayId}-slot-${timeSlot.id}-group-${groupId}`
+          transformedSchedule[cellKey] = lessonDisplay
         }
       }
     }
@@ -445,13 +365,26 @@ const handleSpecialtyChange = (departmentId) => {
   selectedDepartmentId.value = departmentId
 }
 
-const handleCellSelect = (_cellData) => {
+const handleCellSelect = (cellData) => {
+  console.log('Cell selected:', cellData)
 }
 
-const handleCellEdit = (_cellData) => {
+const handleCellEdit = (cellData) => {
+  console.log('Cell edit requested:', cellData)
+
+  if (cellData.lessonData) {
+    // Есть занятие - открываем меню редактирования/удаления
+    openLessonActionMenu(cellData)
+  }
+  else {
+    // Пустая ячейка - открываем создание
+    globalDragSelection.setSelection([cellData.cellId])
+    openCreateLessonModal()
+  }
 }
 
-const handleDragSelection = (_selection) => {
+const handleDragSelection = (selection) => {
+  console.log('Drag selection:', selection)
 }
 
 // Функции для модальных окон
@@ -464,9 +397,60 @@ const closeCreateModal = () => {
   showCreateModal.value = false
 }
 
+const openLessonActionMenu = (cellData) => {
+  // Показываем простое меню с опциями
+  const action = window.confirm(
+    'Що ви хочете зробити з цим заняттям?\n\n'
+    + 'OK - Редагувати\n'
+    + 'Cancel - Видалити'
+  )
+
+  if (action) {
+    openEditLessonModal(cellData)
+  }
+  else {
+    // Подтверждаем удаление
+    const confirmDelete = window.confirm('Ви впевнені, що хочете видалити це заняття?')
+    if (confirmDelete) {
+      openDeleteLessonModal(cellData)
+    }
+  }
+}
+
+const openEditLessonModal = (cellData) => {
+  editingLessonData.value = {
+    cellData,
+    lessonData: cellData.lessonData,
+    cellId: `day-${cellData.day.id}-slot-${cellData.timeSlot.id}-group-${cellData.group.id}`
+  }
+  showEditModal.value = true
+}
+
+const closeEditModal = () => {
+  showEditModal.value = false
+  editingLessonData.value = null
+}
+
+const openDeleteLessonModal = (cellData) => {
+  deletingLessonData.value = {
+    cellData,
+    lessonData: cellData.lessonData,
+    cellId: `day-${cellData.day.id}-slot-${cellData.timeSlot.id}-group-${cellData.group.id}`
+  }
+  showDeleteModal.value = true
+}
+
+const closeDeleteModal = () => {
+  showDeleteModal.value = false
+  deletingLessonData.value = null
+}
+
 // handleLessonCreate из indexNew.vue (работа с API)
 const handleLessonCreate = async(lessonData) => {
   console.log('Creating lesson:', lessonData)
+
+  // Импортируем композабл для уведомлений
+  const { error: showError, success: showSuccess } = useShowNotivue()
 
   try {
     // Преобразуем выбранные ячейки в структуру для API
@@ -474,15 +458,18 @@ const handleLessonCreate = async(lessonData) => {
 
     // Парсим выбранные ячейки для получения данных о группах, днях и времени
     const parsedCells = selectedCells.map((cellId) => {
-      const match = cellId.match(/day-(\d+)-slot-(\d+)-group-(\d+)-subgroup-(\d+)/)
+      console.log('🔍 Parsing cell ID:', cellId)
+      const match = cellId.match(/day-(\d+)-slot-(\d+)-group-(\d+)/)
       if (match) {
-        return {
+        const parsed = {
           dayId: Number.parseInt(match[1]),
           timeSlotId: Number.parseInt(match[2]),
-          groupId: Number.parseInt(match[3]),
-          subgroupId: Number.parseInt(match[4])
+          groupId: Number.parseInt(match[3])
         }
+        console.log('✅ Parsed cell:', parsed)
+        return parsed
       }
+      console.warn('❌ Failed to parse cell ID:', cellId)
       return null
     }).filter(Boolean)
 
@@ -490,19 +477,23 @@ const handleLessonCreate = async(lessonData) => {
       throw new Error('Не вдалося розпарсити вибрані ячейки')
     }
 
-    // Получаем уникальные группы и подгруппы
-    const uniqueGroups = [...new Set(parsedCells.map(cell => cell.groupId))]
-    const _uniqueSubgroups = [...new Set(parsedCells.map(cell => cell.subgroupId))]
-    const uniqueTimeSlots = [...new Set(parsedCells.map(cell => cell.timeSlotId))]
-    const uniqueDays = [...new Set(parsedCells.map(cell => cell.dayId))]
+    // Группируем ячейки по временным слотам
+    const cellsByTimeSlot = {}
+    parsedCells.forEach((cell) => {
+      const key = `${cell.dayId}-${cell.timeSlotId}`
+      if (!cellsByTimeSlot[key]) {
+        cellsByTimeSlot[key] = {
+          dayId: cell.dayId,
+          timeSlotId: cell.timeSlotId,
+          groups: new Set()
+        }
+      }
+      cellsByTimeSlot[key].groups.add(cell.groupId)
+    })
 
-    // Преобразуем timeSlot в startTime/endTime
-    const timeSlot = timeSlots.value.find(slot => slot.id === uniqueTimeSlots[0])
-    const [startTimeStr, endTimeStr] = timeSlot.time.split('-')
-    const [startHour, startMinute] = startTimeStr.split(':').map(Number)
-    const [endHour, endMinute] = endTimeStr.split(':').map(Number)
+    console.log('Grouped cells by time slot:', cellsByTimeSlot)
 
-    // Преобразуем дни в dayOfWeek и dates
+    // Преобразуем дни в dayOfWeek
     const dayOfWeekMapping = {
       1: 'MONDAY',
       2: 'TUESDAY',
@@ -512,59 +503,166 @@ const handleLessonCreate = async(lessonData) => {
       6: 'SATURDAY',
       7: 'SUNDAY'
     }
-    const dayOfWeek = dayOfWeekMapping[uniqueDays[0]] || 'MONDAY'
 
-    // Генерируем реальные даты для выбранного дня недели
+    const dayNames = {
+      1: 'Понеділок',
+      2: 'Вівторок',
+      3: 'Середа',
+      4: 'Четвер',
+      5: 'П\'ятниця',
+      6: 'Субота',
+      7: 'Неділя'
+    }
+
+    // Генерируем реальные даты
     const today = new Date()
-    const currentWeekStart = new Date(today.setDate(today.getDate() - today.getDay() + 1)) // Понедельник
-    const dates = uniqueDays.map((dayId) => {
+    const currentWeekStart = new Date(today.setDate(today.getDate() - today.getDay() + 1))
+
+    // Создаем запросы для каждого временного слота
+    const createPromises = []
+    const createdLessons = []
+    const failedLessons = []
+
+    for (const [_key, timeSlotData] of Object.entries(cellsByTimeSlot)) {
+      // Получаем время для этого слота
+      console.log('🕐 Looking for time slot with ID:', timeSlotData.timeSlotId)
+      console.log('🕐 Available time slots:', timeSlots.value)
+
+      const timeSlot = timeSlots.value.find(slot => slot.id === timeSlotData.timeSlotId)
+      if (!timeSlot) {
+        console.warn('❌ Time slot not found:', timeSlotData.timeSlotId)
+        console.warn('Available slot IDs:', timeSlots.value.map(s => s.id))
+        continue
+      }
+
+      console.log('✅ Found time slot:', timeSlot)
+
+      const [startTimeStr, endTimeStr] = timeSlot.time.split('-')
+      const [startHour, startMinute] = startTimeStr.split(':').map(Number)
+      const [endHour, endMinute] = endTimeStr.split(':').map(Number)
+
+      console.log('🕐 Parsed time:', { startTimeStr, endTimeStr, startHour, startMinute, endHour, endMinute })
+
+      // Генерируем дату для этого дня
+      const dayOfWeek = dayOfWeekMapping[timeSlotData.dayId] || 'MONDAY'
       const lessonDate = new Date(currentWeekStart)
-      lessonDate.setDate(currentWeekStart.getDate() + dayId - 1) // dayId: 1=понедельник, 2=вторник, etc.
-      return lessonDate.toISOString().split('T')[0] // YYYY-MM-DD формат
-    })
+      lessonDate.setDate(currentWeekStart.getDate() + timeSlotData.dayId - 1)
+      const dates = [lessonDate.toISOString().split('T')[0]]
 
-    // Создаем DTO для API согласно новому формату
-    const dto = {
-      type: lessonData.subject.type, // "LECTURE", "PRACTICE", "LABORATORY"
-      startTime: `${startHour.toString().padStart(2, '0')}:${startMinute.toString().padStart(2, '0')}:00`,
-      endTime: `${endHour.toString().padStart(2, '0')}:${endMinute.toString().padStart(2, '0')}:00`,
-      isOnline: lessonData.isOnline || false,
-      roomIds: [lessonData.room.id],
-      professorId: lessonData.professor.id,
-      groupIds: uniqueGroups,
-      subgroupIds: [],
-      dayOfWeek: dayOfWeek,
-      dates: dates,
-      subjectId: lessonData.subject.id
+      // Создаем DTO для этого временного слота
+      const dto = {
+        type: lessonData.subject.type,
+        startTime: `${startHour.toString().padStart(2, '0')}:${startMinute.toString().padStart(2, '0')}:00`,
+        endTime: `${endHour.toString().padStart(2, '0')}:${endMinute.toString().padStart(2, '0')}:00`,
+        isOnline: lessonData.isOnline || false,
+        roomIds: [lessonData.room.id],
+        professorId: lessonData.professor.id,
+        groupIds: Array.from(timeSlotData.groups),
+        subgroupIds: [], // Оставляем пустой массив как требуется
+        dayOfWeek: dayOfWeek,
+        dates: dates,
+        subjectId: lessonData.subject.id
+      }
+
+      console.log(`Creating lesson for time slot ${timeSlotData.timeSlotId}:`, dto)
+
+      // Добавляем промис создания в массив с обработкой ошибок
+      const createPromise = scheduleStore.create(dto)
+        .then((result) => {
+          createdLessons.push({
+            timeSlotId: timeSlotData.timeSlotId,
+            timeSlot: timeSlot,
+            dayName: dayNames[timeSlotData.dayId],
+            result: result,
+            dto: dto
+          })
+          return result
+        })
+        .catch((error) => {
+          console.error(`Failed to create lesson for slot ${timeSlotData.timeSlotId}:`, error)
+
+          // Извлекаем сообщение об ошибке
+          let errorMessage = 'Невідома помилка'
+          if (error.response?.data?.message) {
+            errorMessage = error.response.data.message
+          }
+          else if (error.message) {
+            errorMessage = error.message
+          }
+
+          failedLessons.push({
+            timeSlotId: timeSlotData.timeSlotId,
+            timeSlot: timeSlot,
+            dayName: dayNames[timeSlotData.dayId],
+            error: errorMessage,
+            dto: dto
+          })
+
+          // Не прерываем выполнение других запросов
+          return null
+        })
+
+      createPromises.push(createPromise)
     }
 
-    console.log('DTO for API:', dto)
+    // Ждем выполнения всех запросов
+    console.log(`Sending ${createPromises.length} requests for ${Object.keys(cellsByTimeSlot).length} time slots`)
+    const results = await Promise.allSettled(createPromises)
 
-    // Используем scheduleStore для создания занятия
-    const result = await scheduleStore.create(dto)
+    console.log('All requests completed:', results)
+    console.log('Created lessons:', createdLessons)
+    console.log('Failed lessons:', failedLessons)
 
-    // Сохраняем данные созданного занятия для модального окна рекомендаций
-    createdLessonData.value = {
-      ...lessonData,
-      entryId: result?.id, // ID созданной записи если возвращается API
-      dto
+    // Показываем результаты пользователю
+    if (createdLessons.length > 0) {
+      showSuccess(`Успішно створено ${createdLessons.length} занять`)
+
+      // Сохраняем данные для модального окна рекомендаций (используем первое занятие)
+      createdLessonData.value = {
+        ...lessonData,
+        entryId: createdLessons[0].result?.id,
+        dto: createdLessons[0].dto,
+        allCreatedLessons: createdLessons
+      }
+
+      // Генерируем рекомендации аудиторий
+      generateRoomRecommendations(lessonData)
+
+      // Показываем модальное окно рекомендаций
+      showRoomModal.value = true
     }
 
-    // Генерируем рекомендации аудиторий
-    generateRoomRecommendations(lessonData)
+    // Показываем ошибки для конкретных временных слотов
+    if (failedLessons.length > 0) {
+      failedLessons.forEach((failed) => {
+        const timeInfo = `${failed.dayName}, ${failed.timeSlot.time}`
+
+        // Проверяем специфические типы ошибок
+        if (failed.error.includes('Professor is busy')) {
+          showError(`Викладач зайнятий у часовому слоті: ${timeInfo}`, 'Конфлікт розкладу')
+        }
+        else if (failed.error.includes('Room is occupied')) {
+          showError(`Аудиторія зайнята у часовому слоті: ${timeInfo}`, 'Конфлікт розкладу')
+        }
+        else {
+          showError(`Помилка у часовому слоті ${timeInfo}: ${failed.error}`, 'Помилка створення')
+        }
+      })
+    }
 
     // Закрываем модальное окно создания
     closeCreateModal()
 
-    // Показываем модальное окно рекомендаций
-    showRoomModal.value = true
-
     // Очищаем выделение
     globalDragSelection.clearSelection()
+
+    // Показываем итоговое сообщение
+    const totalRequested = createdLessons.length + failedLessons.length
+    console.log(`✅ Completed: ${createdLessons.length}/${totalRequested} lessons created successfully`)
   }
   catch (error) {
-    console.error('Error creating lesson:', error)
-    // Можно добавить уведомление об ошибке для пользователя
+    console.error('Error creating lessons:', error)
+    showError('Критична помилка при створенні занять', 'Помилка')
   }
 }
 
@@ -631,96 +729,68 @@ const handleRoomConfirm = async(selectedRoom) => {
 }
 
 // Добавляем новую функцию для тестирования модального окна
-const testCreateModal = () => {
-  // Используем реальные группы для тестирования
-  if (filteredGroups.value.length === 0) {
-    console.warn('No filtered groups available for testing')
-    alert('Нет доступных групп для тестирования. Выберите департамент и убедитесь, что группы загружены.')
-    return
-  }
-
-  const firstGroup = filteredGroups.value[0]
-  const firstSubgroup = firstGroup.subgroups?.[0]
-
-  if (!firstSubgroup) {
-    console.warn('No subgroups available for testing')
-    alert('У группы нет подгрупп для тестирования.')
-    return
-  }
-
-  console.log('Testing with group:', firstGroup)
-  console.log('Testing with subgroup:', firstSubgroup)
-
-  // Симулируем выбранные ячейки для тестирования с реальными ID
-  const testCells = [
-    `day-1-slot-1-group-${firstGroup.id}-subgroup-${firstSubgroup.id}`,
-    `day-1-slot-2-group-${firstGroup.id}-subgroup-${firstSubgroup.id}`
-  ]
-
-  // Очищаем предыдущее выделение
-  globalDragSelection.clearSelection()
-
-  // Добавляем тестовые ячейки в выделение
-  testCells.forEach((cellId) => {
-    globalDragSelection.addCellToSelection(cellId)
-  })
-
-  // Открываем модальное окно
+const _testCreateModal = () => {
+  // Симулируем выбор одной ячейки
+  const testCells = ['day-1-slot-1-group-1']
+  globalDragSelection.setSelection(testCells)
   showCreateModal.value = true
-  console.log('Тестирование модального окна с ячейками:', testCells)
-  console.log('Доступные данные:', {
-    subjects: subjects.value.length,
-    professors: professors.value.length,
-    rooms: rooms.value.length
-  })
 }
 
-// Функция для отладки доступных ячеек
-const debugAvailableCells = () => {
-  console.log('=== DEBUG AVAILABLE CELLS ===')
-  console.log('Total available cells:', globalDragSelection.getAvailableCellsCount())
-  console.log('Available cells:', Array.from(globalDragSelection.availableCells.value))
-  console.log('Filtered groups:', filteredGroups.value)
+const _testMultipleTimeSlots = () => {
+  // Симулируем выбор прямоугольной области: 2 временных слота × 2 группы
+  const testCells = [
+    'day-1-slot-1-group-1',
+    'day-1-slot-2-group-2',
+    'day-2-slot-1-group-3',
+    'day-2-slot-2-group-4'
+  ]
+  globalDragSelection.setSelection(testCells)
+  showCreateModal.value = true
+  console.log('🧪 Testing multiple time slots:', testCells)
 }
 
-// Функция для тестирования драг селекта
-const testDragSelection = () => {
-  console.log('=== TEST DRAG SELECTION ===')
+const _debugAvailableCells = () => {
+  const available = globalDragSelection.availableCells.value
+  console.log('Available cells count:', available.length)
+  console.log('Available cells sample:', available.slice(0, 10))
+}
 
-  if (filteredGroups.value.length === 0) {
-    alert('Нет групп для тестирования!')
-    return
-  }
+const _testDragSelection = () => {
+  const testCells = ['day-1-slot-1-group-1', 'day-1-slot-2-group-2']
+  globalDragSelection.setSelection(testCells)
+  console.log('🧪 Drag selection test - Selected cells:', globalDragSelection.selectedCells.value)
+}
 
-  const firstGroup = filteredGroups.value[0]
-  const firstSubgroup = firstGroup.subgroups[0]
-  const secondSubgroup = firstGroup.subgroups[1] || firstSubgroup
+// Отладочная функция для проверки состояния drag selection
+const _debugDragSelection = () => {
+  console.log('🔍 Drag selection state:')
+  console.log('  - Available cells:', globalDragSelection.availableCells.value.length)
+  console.log('  - Selected cells:', globalDragSelection.selectedCells.value.size)
+  console.log('  - Is selecting:', globalDragSelection.isSelecting.value)
+  console.log('  - Can edit schedule:', canEditSchedule.value)
+  console.log('  - Available cells sample:', globalDragSelection.availableCells.value.slice(0, 5))
+}
 
-  // Тестируем программно без мыши
-  const startCellId = `day-1-slot-1-group-${firstGroup.id}-subgroup-${firstSubgroup.id}`
-  const endCellId = `day-1-slot-2-group-${firstGroup.id}-subgroup-${secondSubgroup.id}`
-
-  console.log('Testing drag from:', startCellId, 'to:', endCellId)
-
-  // Симулируем startSelection
-  globalDragSelection.startSelection(startCellId, {}, false)
-  console.log('After startSelection:', globalDragSelection.selectedCells.value.size)
-
-  // Симулируем updateSelection
-  globalDragSelection.updateSelection(endCellId, {})
-  console.log('After updateSelection:', globalDragSelection.selectedCells.value.size)
-
-  // Симулируем endSelection
-  const result = globalDragSelection.endSelection()
-  console.log('Final result:', result)
-
-  alert(`Результат теста драга:\nСтарт: ${startCellId}\nКонец: ${endCellId}\nВыбрано ячеек: ${result.length}`)
+// Добавляем в window для тестирования
+if (typeof window !== 'undefined') {
+  window._debugDragSelection = _debugDragSelection
 }
 
 // Инициализация данных (из indexNew.vue)
 onMounted(async() => {
   try {
     console.log('🚀 Starting data loading...')
+
+    // Проверяем авторизацию
+    if (!authStore.token) {
+      await navigateTo('/login')
+      return
+    }
+
+    // Загружаем информацию о пользователе если её нет
+    if (!authStore.user) {
+      await authStore.fetchMe()
+    }
 
     // Загружаем все данные параллельно
     await Promise.all([
@@ -729,18 +799,49 @@ onMounted(async() => {
       professorStore.fetchProfessors(),
       subjectStore.fetchSubjects(),
       roomStore.fetchRooms(),
-      scheduleStore.fetchAll()
+      scheduleStore.fetchAll(),
+      // Загружаем студентов для определения группы текущего студента
+      isStudent.value ? studentStore.fetchStudents() : Promise.resolve()
     ])
 
     console.log('✅ All data loaded')
-    console.log('Departments:', departments.value)
-    console.log('All groups from store:', groupStore.groups)
+    console.log('🔍 Current user:', authStore.user)
+    console.log('🔍 User roles:', authStore.roles)
+    console.log('🔍 Is student:', isStudent.value)
+    console.log('🔍 Can edit schedule:', canEditSchedule.value)
+    console.log('🔍 Current student data:', currentStudent.value)
 
-    // Устанавливаем первый департамент по умолчанию
-    if (departments.value.length > 0) {
+    // Устанавливаем первый департамент по умолчанию если пользователь может редактировать
+    if (departments.value.length > 0 && canEditSchedule.value) {
       selectedDepartmentId.value = departments.value[0].id
       console.log('🎯 Selected department ID:', selectedDepartmentId.value)
       console.log('🎯 Selected department:', departments.value[0])
+    }
+    else if (departments.value.length > 0 && isStudent.value) {
+      // Для студентов определяем кафедру по их группе
+      if (currentStudent.value?.group?.id) {
+        const studentGroup = groupStore.groups.find(g => g.id === currentStudent.value.group.id)
+        if (studentGroup) {
+          const departmentId = studentGroup.department?.id || studentGroup.departmentId
+          if (departmentId) {
+            selectedDepartmentId.value = departmentId
+            console.log('🎯 Student department set by group:', departmentId)
+          }
+          else {
+            // Fallback к первой кафедре
+            selectedDepartmentId.value = departments.value[0].id
+            console.log('🎯 Student view - fallback to first department:', departments.value[0])
+          }
+        }
+        else {
+          selectedDepartmentId.value = departments.value[0].id
+          console.log('🎯 Student group not found, fallback to first department')
+        }
+      }
+      else {
+        selectedDepartmentId.value = departments.value[0].id
+        console.log('🎯 No student group info, fallback to first department')
+      }
     }
     else {
       console.warn('⚠️ No departments found!')
@@ -750,4 +851,122 @@ onMounted(async() => {
     console.error('❌ Error loading initial data:', error)
   }
 })
+
+const handleLessonEdit = async(editedLessonData) => {
+  console.log('Editing lesson:', editedLessonData)
+
+  const { error: showError, success: showSuccess } = useShowNotivue()
+
+  try {
+    // Найти ID оригинального занятия из scheduleData
+    const originalCell = editingLessonData.value
+    const cellKey = originalCell.cellId
+
+    // Парсим cellId для получения информации о времени и дне
+    const match = cellKey.match(/day-(\d+)-slot-(\d+)-group-(\d+)/)
+    if (!match) {
+      throw new Error('Не вдалося розпарсити ідентифікатор ячейки')
+    }
+
+    const dayId = Number.parseInt(match[1])
+    const timeSlotId = Number.parseInt(match[2])
+    const groupId = Number.parseInt(match[3])
+
+    // Получаем временной слот
+    const timeSlot = timeSlots.value.find(slot => slot.id === timeSlotId)
+    if (!timeSlot) {
+      throw new Error('Часовий слот не знайдено')
+    }
+
+    const [startTimeStr, endTimeStr] = timeSlot.time.split('-')
+    const [startHour, startMinute] = startTimeStr.split(':').map(Number)
+    const [endHour, endMinute] = endTimeStr.split(':').map(Number)
+
+    // Преобразуем день в dayOfWeek
+    const dayOfWeekMapping = {
+      1: 'MONDAY',
+      2: 'TUESDAY',
+      3: 'WEDNESDAY',
+      4: 'THURSDAY',
+      5: 'FRIDAY',
+      6: 'SATURDAY',
+      7: 'SUNDAY'
+    }
+    const dayOfWeek = dayOfWeekMapping[dayId] || 'MONDAY'
+
+    // Генерируем дату
+    const today = new Date()
+    const currentWeekStart = new Date(today.setDate(today.getDate() - today.getDay() + 1))
+    const lessonDate = new Date(currentWeekStart)
+    lessonDate.setDate(currentWeekStart.getDate() + dayId - 1)
+    const dates = [lessonDate.toISOString().split('T')[0]]
+
+    // Создаем DTO для обновления
+    const updateDto = {
+      type: editedLessonData.subject.type,
+      startTime: `${startHour.toString().padStart(2, '0')}:${startMinute.toString().padStart(2, '0')}:00`,
+      endTime: `${endHour.toString().padStart(2, '0')}:${endMinute.toString().padStart(2, '0')}:00`,
+      isOnline: editedLessonData.isOnline || false,
+      roomIds: [editedLessonData.room.id],
+      professorId: editedLessonData.professor.id,
+      groupIds: [groupId],
+      subgroupIds: [],
+      dayOfWeek: dayOfWeek,
+      dates: dates,
+      subjectId: editedLessonData.subject.id
+    }
+
+    console.log('Update DTO:', updateDto)
+
+    // Находим ID занятия для обновления
+    const lessonId = originalCell.lessonData.id
+
+    if (!lessonId) {
+      throw new Error('ID заняття не знайдено')
+    }
+
+    // Обновляем занятие
+    await scheduleStore.update(lessonId, updateDto)
+
+    showSuccess('Заняття успішно оновлено')
+    closeEditModal()
+
+    // Перезагружаем данные расписания
+    await scheduleStore.fetchAll()
+  }
+  catch (error) {
+    console.error('Error editing lesson:', error)
+    showError('Помилка при редагуванні заняття', 'Помилка')
+  }
+}
+
+const handleLessonDelete = async() => {
+  console.log('Deleting lesson:', deletingLessonData.value)
+
+  const { error: showError, success: showSuccess } = useShowNotivue()
+
+  try {
+    const originalCell = deletingLessonData.value
+
+    // Находим ID занятия для удаления
+    const lessonId = originalCell.lessonData.id
+
+    if (!lessonId) {
+      throw new Error('ID заняття не знайдено')
+    }
+
+    // Удаляем занятие
+    await scheduleStore.remove(lessonId)
+
+    showSuccess('Заняття успішно видалено')
+    closeDeleteModal()
+
+    // Перезагружаем данные расписания
+    await scheduleStore.fetchAll()
+  }
+  catch (error) {
+    console.error('Error deleting lesson:', error)
+    showError('Помилка при видаленні заняття', 'Помилка')
+  }
+}
 </script>

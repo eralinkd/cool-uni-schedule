@@ -4,20 +4,18 @@
       {{ timeSlot.time }}
     </td>
 
-    <template v-for="group in groups" :key="`row-${group.id}`">
-      <ScheduleCell
-        v-for="subgroup in group.subgroups"
-        :key="`cell-${day.id}-${timeSlot.id}-${group.id}-${subgroup.id}`"
-        :day="day"
-        :time-slot="timeSlot"
-        :group="group"
-        :subgroup="subgroup"
-        :lesson-data="getLessonData(day.id, timeSlot.id, group.id, subgroup.id)"
-        @select="$emit('cell-select', $event)"
-        @edit="$emit('cell-edit', $event)"
-        @drag-end="handleDragEnd"
-      />
-    </template>
+    <ScheduleCell
+      v-for="group in groups"
+      :key="`cell-${day.id}-${timeSlot.id}-${group.id}`"
+      :day="day"
+      :time-slot="timeSlot"
+      :group="group"
+      :lesson-data="getLessonData(day.id, timeSlot.id, group.id)"
+      :can-edit="canEdit"
+      @select="$emit('cell-select', $event)"
+      @edit="$emit('cell-edit', $event)"
+      @drag-end="handleDragEnd"
+    />
   </tr>
 </template>
 
@@ -38,13 +36,17 @@ const props = defineProps({
   scheduleData: {
     type: Object,
     required: true
+  },
+  canEdit: {
+    type: Boolean,
+    default: false
   }
 })
 
 const emit = defineEmits(['cell-select', 'cell-edit', 'drag-selection'])
 
-const getLessonData = (dayId, timeSlotId, groupId, subgroupId) => {
-  const key = `day-${dayId}-slot-${timeSlotId}-group-${groupId}-subgroup-${subgroupId}`
+const getLessonData = (dayId, timeSlotId, groupId) => {
+  const key = `day-${dayId}-slot-${timeSlotId}-group-${groupId}`
   return props.scheduleData[key] || null
 }
 

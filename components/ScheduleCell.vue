@@ -1,15 +1,15 @@
 <template>
   <td
     ref="cellRef"
-    class="border-r border-gray-200 p-1 align-top min-w-32 h-20 cursor-pointer
-           hover:bg-blue-50 focus:bg-blue-50 relative group select-none"
+    class="border-r border-gray-200 p-1 align-top min-w-32 h-20 relative group select-none"
     :class="{
-      'bg-blue-100': isSelected,
+      'bg-blue-100': isSelected && props.canEdit,
       'bg-green-50': hasLesson,
-      'bg-blue-200': isDragSelected,
-      'cursor-crosshair': dragSelection && dragSelection.isSelecting.value,
+      'bg-blue-200': isDragSelected && props.canEdit,
+      'cursor-pointer hover:bg-blue-50 focus:bg-blue-50': props.canEdit,
+      'cursor-crosshair': props.canEdit && dragSelection && dragSelection.isSelecting.value,
     }"
-    tabindex="0"
+    :tabindex="props.canEdit ? 0 : -1"
     @mousedown="handleMouseDown"
     @mouseenter="handleMouseEnter"
     @click="handleCellClick"
@@ -26,16 +26,24 @@
       </div>
 
       <div class="flex flex-col space-y-0.5">
-        <div v-if="lessonData.platform" class="text-blue-600 underline">
-          {{ lessonData.platform }}
+        <div v-if="lessonData.platform" class="text-blue-600">
+          <a
+            v-if="isValidUrl(lessonData.platform)"
+            :href="lessonData.platform"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="underline hover:text-blue-800 transition-colors cursor-pointer"
+            @click.stop
+          >
+            Онлайн-посилання
+          </a>
+          <span v-else class="underline">
+            {{ lessonData.platform }}
+          </span>
         </div>
 
         <div v-if="lessonData.room" class="text-gray-600">
           {{ lessonData.room }}
-        </div>
-
-        <div v-if="lessonData.dates" class="text-gray-600">
-          {{ lessonData.dates }}
         </div>
       </div>
     </div>
@@ -72,17 +80,28 @@ const props = defineProps({
     type: Object,
     required: true
   },
-  subgroup: {
-    type: Object,
-    required: true
-  },
   lessonData: {
     type: Object,
     default: null
+  },
+  canEdit: {
+    type: Boolean,
+    default: true
   }
 })
 
 const emit = defineEmits(['select', 'edit', 'drag-start', 'drag-update', 'drag-end'])
+
+// Функция для проверки валидности URL
+const isValidUrl = (string) => {
+  try {
+    const url = new URL(string)
+    return url.protocol === 'http:' || url.protocol === 'https:'
+  }
+  catch {
+    return false
+  }
+}
 
 const cellRef = ref(null)
 let wasDragging = false
@@ -97,8 +116,12 @@ if (!dragSelection) {
 }
 else {
   onMounted(() => {
-    if (cellId.value) {
+    // Регистрируем ячейку только если пользователь может редактировать
+    if (props.canEdit && cellId.value) {
       dragSelection.registerAvailableCell(cellId.value)
+    }
+    else if (!props.canEdit) {
+      console.log('Cell registration skipped - editing disabled')
     }
     else {
       console.warn('cellId is null on mount, props:', props)
@@ -108,7 +131,7 @@ else {
 
 const cellId = computed(() => {
   if (!dragSelection) return null
-  return `day-${props.day.id}-slot-${props.timeSlot.id}-group-${props.group.id}-subgroup-${props.subgroup.id}`
+  return `day-${props.day.id}-slot-${props.timeSlot.id}-group-${props.group.id}`
 })
 
 const hasLesson = computed(() => {
@@ -125,6 +148,7 @@ const isDragSelected = computed(() => {
 })
 
 const handleMouseDown = (event) => {
+  if (!props.canEdit) return
   if (event.button !== 0) return
   if (!dragSelection || !cellId.value) return
 
@@ -155,7 +179,6 @@ const handleGlobalMouseMove = (event) => {
         day: props.day,
         timeSlot: props.timeSlot,
         group: props.group,
-        subgroup: props.subgroup,
         lessonData: props.lessonData
       }
 
@@ -166,13 +189,13 @@ const handleGlobalMouseMove = (event) => {
 }
 
 const handleMouseEnter = () => {
+  if (!props.canEdit) return
   if (!dragSelection || !dragSelection.isSelecting.value || !cellId.value) return
 
   const cellData = {
     day: props.day,
     timeSlot: props.timeSlot,
     group: props.group,
-    subgroup: props.subgroup,
     lessonData: props.lessonData
   }
 
@@ -202,6 +225,7 @@ const handleGlobalMouseUp = () => {
 }
 
 const handleCellClick = (event) => {
+  if (!props.canEdit) return
   if (!dragSelection || !cellId.value) return
 
   if (wasDragging) {
@@ -232,8 +256,8 @@ const handleCellClick = (event) => {
     day: props.day,
     timeSlot: props.timeSlot,
     group: props.group,
-    subgroup: props.subgroup,
     lessonData: props.lessonData,
+    cellId: cellId.value,
     selected: dragSelection.isCellSelected(cellId.value)
   }
 
@@ -241,6 +265,7 @@ const handleCellClick = (event) => {
 }
 
 const handleRightClick = (event) => {
+  if (!props.canEdit) return
   event.preventDefault()
 
   if (!dragSelection) return
@@ -250,12 +275,13 @@ const handleRightClick = (event) => {
 }
 
 const handleDoubleClick = () => {
+  if (!props.canEdit) return
   const cellData = {
     day: props.day,
     timeSlot: props.timeSlot,
     group: props.group,
-    subgroup: props.subgroup,
-    lessonData: props.lessonData
+    lessonData: props.lessonData,
+    cellId: cellId.value
   }
 
   emit('edit', cellData)

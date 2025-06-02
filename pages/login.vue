@@ -73,11 +73,14 @@ const handleLogin = async() => {
         if (authStore.roles.includes('ROLE_ADMIN')) {
           router.replace({ name: 'admin' })
         }
-        else if (authStore.roles.includes('ROLE_PROFESSOR')) {
-          router.replace({ name: 'professorDashboard' })
-        }
-        else if (authStore.roles.includes('ROLE_STUDENT')) {
-          router.replace({ name: 'studentHome' })
+        // else if (authStore.roles.includes('ROLE_PROFESSOR')) {
+        //   router.replace({ name: 'professorDashboard' })
+        // }
+        // else if (authStore.roles.includes('ROLE_STUDENT')) {
+        //   router.replace({ name: 'studentHome' })
+        // }
+        else if (authStore.roles.includes('ROLE_STUDENT') || authStore.roles.includes('ROLE_PROFESSOR')) {
+          router.replace({ name: 'index' })
         }
         else {
           router.replace({ name: 'login' })

@@ -3,7 +3,7 @@
     <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div class="bg-white rounded-lg shadow-xl w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto">
         <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
-          <h2 class="text-xl font-semibold text-gray-900">Створити заняття</h2>
+          <h2 class="text-xl font-semibold text-gray-900">Редагувати заняття</h2>
           <button
             class="text-gray-400 hover:text-gray-600"
             @click="$emit('close')"
@@ -13,13 +13,13 @@
         </div>
 
         <div class="px-6 py-4">
-          <!-- Информация о выбранных ячейках -->
-          <div class="mb-6 p-4 bg-blue-50 rounded-lg">
-            <h3 class="font-medium text-blue-900 mb-2">Вибрані ячейки:</h3>
-            <p class="text-sm text-blue-700">{{ selectedCellsInfo }}</p>
+          <!-- Информация о редактируемой ячейке -->
+          <div class="mb-6 p-4 bg-yellow-50 rounded-lg">
+            <h3 class="font-medium text-yellow-900 mb-2">Редагування заняття:</h3>
+            <p class="text-sm text-yellow-700">{{ editInfo }}</p>
           </div>
 
-          <!-- Форма создания занятия -->
+          <!-- Форма редактирования занятия -->
           <div class="space-y-6">
             <!-- Выбор предмета -->
             <div>
@@ -123,12 +123,12 @@
             <div class="space-y-3">
               <div class="flex items-center">
                 <input
-                  id="isOnline"
+                  id="isOnlineEdit"
                   v-model="isOnline"
                   type="checkbox"
                   class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                 />
-                <label for="isOnline" class="ml-2 block text-sm text-gray-700">
+                <label for="isOnlineEdit" class="ml-2 block text-sm text-gray-700">
                   Онлайн заняття
                 </label>
               </div>
@@ -160,7 +160,7 @@
             :disabled="!isFormValid"
             @click="handleSave"
           >
-            Створити
+            Зберегти зміни
           </button>
         </div>
       </div>
@@ -170,8 +170,8 @@
 
 <script setup>
 const props = defineProps({
-  selectedCells: {
-    type: Array,
+  lessonData: {
+    type: Object,
     required: true
   },
   subjects: {
@@ -190,7 +190,7 @@ const props = defineProps({
 
 const emit = defineEmits(['close', 'save'])
 
-// Форма данных
+// Форма данных (инициализируем из существующего занятия)
 const selectedSubject = ref('')
 const selectedProfessor = ref('')
 const selectedRoom = ref('')
@@ -199,20 +199,17 @@ const onlineLink = ref('')
 const additionalDates = ref('')
 const selectedLessonType = ref('')
 
-// Информация о выбранных ячейках
-const selectedCellsInfo = computed(() => {
-  const cellCount = props.selectedCells.length
-  const cellDetails = props.selectedCells.map((cellId) => {
-    const match = cellId.match(/day-(\d+)-slot-(\d+)-group-(\d+)/)
-    if (match) {
-      const dayNames = ['', 'Понеділок', 'Вівторок', 'Середа', 'Четвер', 'П\'ятниця']
-      const timeSlots = ['', '09:00-10:20', '10:30-11:50', '12:10-13:30', '13:40-15:00', '15:10-16:30']
-      return `${dayNames[Number.parseInt(match[1])]} ${timeSlots[Number.parseInt(match[2])]}`
-    }
-    return cellId
-  })
+// Информация о редактируемой ячейке
+const editInfo = computed(() => {
+  const cellData = props.lessonData.cellData
+  if (!cellData) return 'Невідома ячейка'
 
-  return `${cellCount} ячейок: ${cellDetails.join(', ')}`
+  const dayNames = ['', 'Понеділок', 'Вівторок', 'Середа', 'Четвер', 'П\'ятниця', 'Субота', 'Неділя']
+  const dayName = dayNames[cellData.day?.id] || 'Невідомий день'
+  const timeSlot = cellData.timeSlot?.time || 'Невідомий час'
+  const groupName = cellData.group?.name || 'Невідома група'
+
+  return `${dayName}, ${timeSlot}, група ${groupName}`
 })
 
 // Фильтрованные преподаватели по выбранному предмету
@@ -245,6 +242,40 @@ const isFormValid = computed(() => {
   return selectedSubject.value && selectedLessonType.value && selectedProfessor.value && selectedRoom.value
 })
 
+// Инициализация формы данными существующего занятия
+onMounted(() => {
+  const existingLesson = props.lessonData.lessonData
+  if (existingLesson) {
+    // Пытаемся найти соответствующие объекты в массивах
+    const subject = props.subjects.find(s => s.name === existingLesson.subject?.replace(/\s*\([^)]*\)/, ''))
+    const professor = props.professors.find(p => p.name === existingLesson.professor)
+    const room = props.rooms.find(r => r.name === existingLesson.room)
+
+    if (subject) selectedSubject.value = subject
+    if (professor) selectedProfessor.value = professor
+    if (room) selectedRoom.value = room
+
+    // Извлекаем тип занятия из названия предмета (Лек/Лаб/Пр)
+    if (existingLesson.subject?.includes('(Лек)')) {
+      selectedLessonType.value = 'LECTURE'
+    }
+    else if (existingLesson.subject?.includes('(Лаб)')) {
+      selectedLessonType.value = 'LABORATORY'
+    }
+    else if (existingLesson.subject?.includes('(Пр)')) {
+      selectedLessonType.value = 'PRACTICE'
+    }
+
+    // Инициализируем онлайн поля
+    isOnline.value = !!existingLesson.platform && existingLesson.platform !== ''
+    if (isOnline.value && existingLesson.platform !== 'онлайн') {
+      onlineLink.value = existingLesson.platform
+    }
+
+    additionalDates.value = existingLesson.dates || ''
+  }
+})
+
 // Обработка сохранения
 const handleSave = () => {
   if (!isFormValid.value) return
@@ -258,8 +289,7 @@ const handleSave = () => {
     room: selectedRoom.value,
     isOnline: isOnline.value,
     onlineLink: onlineLink.value,
-    additionalDates: additionalDates.value,
-    selectedCells: props.selectedCells
+    additionalDates: additionalDates.value
   }
 
   emit('save', lessonData)
@@ -267,21 +297,15 @@ const handleSave = () => {
 
 // Автоматически выбираем первого подходящего преподавателя
 watch(selectedSubject, (newSubject) => {
-  if (newSubject && filteredProfessors.value.length > 0) {
+  if (newSubject && filteredProfessors.value.length > 0 && !selectedProfessor.value) {
     selectedProfessor.value = filteredProfessors.value[0]
-  }
-  else {
-    selectedProfessor.value = ''
   }
 })
 
 // Автоматически выбираем первую подходящую аудиторию при изменении типа занятия
 watch([selectedLessonType, recommendedRoomsForType], ([newLessonType, newRooms]) => {
-  if (newLessonType && newRooms.length > 0) {
+  if (newLessonType && newRooms.length > 0 && !selectedRoom.value) {
     selectedRoom.value = newRooms[0]
-  }
-  else {
-    selectedRoom.value = ''
   }
 })
 </script>

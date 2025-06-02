@@ -47,6 +47,7 @@
             :items="departmentOptions"
             size="sm"
             class="w-48"
+            :disabled="!canEdit"
             @update:model-value="$emit('department-change', $event)"
           />
         </div>
@@ -105,6 +106,10 @@ const props = defineProps({
   departments: {
     type: Array,
     default: () => []
+  },
+  canEdit: {
+    type: Boolean,
+    default: true
   }
 })
 

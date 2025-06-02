@@ -115,10 +115,6 @@ export const useScheduleStore = defineStore('schedule', () => {
       await fetchAll()
       showNotivue(false, 'Заняття створено')
     }
-    catch (e) {
-      showNotivue(true, 'Помилка створення')
-      throw e
-    }
     finally {
       $loader.hide()
     }

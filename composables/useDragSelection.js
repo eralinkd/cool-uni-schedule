@@ -77,21 +77,16 @@ export const useDragSelection = () => {
 
     console.log('Available cells for day:', availableCellsForDay.length)
 
-    // Находим уникальные группы и подгруппы, упорядоченные по их появлению в таблице
+    // Находим уникальные группы, упорядоченные по их появлению в таблице
     const uniqueGroups = [...new Set(availableCellsForDay.map(item => item.coords.groupId))]
-    const uniqueSubgroups = [...new Set(availableCellsForDay.map(item => item.coords.subgroupId))]
 
     console.log('Unique groups:', uniqueGroups)
-    console.log('Unique subgroups:', uniqueSubgroups)
 
     // Находим индексы start и current координат
     const startGroupIndex = uniqueGroups.indexOf(startCoords.groupId)
     const currentGroupIndex = uniqueGroups.indexOf(currentCoords.groupId)
-    const startSubgroupIndex = uniqueSubgroups.indexOf(startCoords.subgroupId)
-    const currentSubgroupIndex = uniqueSubgroups.indexOf(currentCoords.subgroupId)
 
-    if (startGroupIndex === -1 || currentGroupIndex === -1
-      || startSubgroupIndex === -1 || currentSubgroupIndex === -1) {
+    if (startGroupIndex === -1 || currentGroupIndex === -1) {
       console.log('Could not find indices for coordinates')
       return
     }
@@ -99,10 +94,8 @@ export const useDragSelection = () => {
     // Определяем диапазоны индексов
     const minGroupIndex = Math.min(startGroupIndex, currentGroupIndex)
     const maxGroupIndex = Math.max(startGroupIndex, currentGroupIndex)
-    const minSubgroupIndex = Math.min(startSubgroupIndex, currentSubgroupIndex)
-    const maxSubgroupIndex = Math.max(startSubgroupIndex, currentSubgroupIndex)
 
-    console.log('Index ranges:', { minGroupIndex, maxGroupIndex, minSubgroupIndex, maxSubgroupIndex })
+    console.log('Index ranges:', { minGroupIndex, maxGroupIndex })
 
     selectedCells.value = new Set(initialSelection.value)
 
@@ -110,15 +103,12 @@ export const useDragSelection = () => {
     // Проходим по всем ячейкам в прямоугольной области
     for (let slot = minSlot; slot <= maxSlot; slot++) {
       for (let groupIndex = minGroupIndex; groupIndex <= maxGroupIndex; groupIndex++) {
-        for (let subgroupIndex = minSubgroupIndex; subgroupIndex <= maxSubgroupIndex; subgroupIndex++) {
-          const groupId = uniqueGroups[groupIndex]
-          const subgroupId = uniqueSubgroups[subgroupIndex]
-          const testCellId = `day-${startCoords.dayId}-slot-${slot}-group-${groupId}-subgroup-${subgroupId}`
+        const groupId = uniqueGroups[groupIndex]
+        const testCellId = `day-${startCoords.dayId}-slot-${slot}-group-${groupId}`
 
-          if (isCellAvailable(testCellId)) {
-            selectedCells.value.add(testCellId)
-            addedCells++
-          }
+        if (isCellAvailable(testCellId)) {
+          selectedCells.value.add(testCellId)
+          addedCells++
         }
       }
     }
@@ -160,6 +150,15 @@ export const useDragSelection = () => {
     }
   }
 
+  const setSelection = (cellIds) => {
+    clearSelection()
+    cellIds.forEach((cellId) => {
+      if (isCellAvailable(cellId)) {
+        selectedCells.value.add(cellId)
+      }
+    })
+  }
+
   const removeCellFromSelection = (cellId) => {
     selectedCells.value.delete(cellId)
   }
@@ -169,19 +168,18 @@ export const useDragSelection = () => {
   }
 
   const parseCellId = (cellId) => {
-    const match = cellId.match(/day-(\d+)-slot-(\d+)-group-(.+)-subgroup-(.+)/)
+    const match = cellId.match(/day-(\d+)-slot-(\d+)-group-(.+)/)
     if (!match) return null
 
     return {
       dayId: Number.parseInt(match[1]),
       timeSlotId: Number.parseInt(match[2]),
-      groupId: match[3],
-      subgroupId: match[4]
+      groupId: match[3]
     }
   }
 
-  const createCellId = (dayId, timeSlotId, groupId, subgroupId) => {
-    return `day-${dayId}-slot-${timeSlotId}-group-${groupId}-subgroup-${subgroupId}`
+  const createCellId = (dayId, timeSlotId, groupId) => {
+    return `day-${dayId}-slot-${timeSlotId}-group-${groupId}`
   }
 
   const getSelectionBounds = () => {
@@ -197,21 +195,16 @@ export const useDragSelection = () => {
     const dayIds = [...new Set(coords.map(c => c.dayId))]
     const timeSlotIds = coords.map(c => c.timeSlotId)
     const groupIds = [...new Set(coords.map(c => c.groupId))]
-    const subgroupIds = [...new Set(coords.map(c => c.subgroupId))]
 
     return {
       dayId: dayIds[0], // Предполагаем что выбор в пределах одного дня
       minSlot: Math.min(...timeSlotIds),
       maxSlot: Math.max(...timeSlotIds),
       groupIds: groupIds,
-      subgroupIds: subgroupIds,
       // Оставляем старые поля для обратной совместимости
       groupId: groupIds[0],
-      subgroupId: subgroupIds[0],
       minGroup: groupIds[0],
-      maxGroup: groupIds[groupIds.length - 1],
-      minSubgroup: subgroupIds[0],
-      maxSubgroup: subgroupIds[subgroupIds.length - 1]
+      maxGroup: groupIds[groupIds.length - 1]
     }
   }
 
@@ -225,6 +218,7 @@ export const useDragSelection = () => {
     isCellSelected,
     toggleCellSelection,
     addCellToSelection,
+    setSelection,
     removeCellFromSelection,
     getSelectedCount,
     createCellId,
