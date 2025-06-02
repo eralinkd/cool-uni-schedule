@@ -19,8 +19,8 @@ export const useProfessorStore = defineStore('professor', () => {
 
     return professors.map(professor => ({
       ...professor,
-      departments: Array.isArray(professor.departmentIds)
-        ? professor.departmentIds.map(id => departments.find(dept => dept.id === id)).filter(Boolean)
+      departments: Array.isArray(professor.departments)
+        ? professor.departments.map(id => departments.find(dept => dept.id === id)).filter(Boolean)
         : []
     }))
   }

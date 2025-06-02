@@ -19,7 +19,7 @@ export const useSubjectStore = defineStore('subject', () => {
 
     return subjects.map(subject => ({
       ...subject,
-      department: departments.find(dept => dept.id === subject.departmentId) || null
+      department: departments.find(dept => dept.id === subject.department) || null
     }))
   }
 

@@ -17,7 +17,7 @@
         {{ row.original.rate }}
       </template>
       <template #departments-cell="{ row }">
-        {{ row.original.departments?.map(d => d).join(', ') || '-' }}
+        {{ row.original.departments.map(d => d.name).join(', ') || '-' }}
       </template>
       <template #actions-cell="{ row }">
         <div class="flex gap-2">
@@ -225,9 +225,9 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
-import { useProfessorStore } from '~/stores/professorStore'
+import { computed, onMounted, ref } from 'vue'
 import { useDepartmentStore } from '~/stores/departmentStore'
+import { useProfessorStore } from '~/stores/professorStore'
 
 const professorStore = useProfessorStore()
 const departmentStore = useDepartmentStore()

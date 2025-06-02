@@ -230,9 +230,9 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue'
-import { useStudentStore } from '~/stores/studentStore'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useGroupStore } from '~/stores/groupStore'
+import { useStudentStore } from '~/stores/studentStore'
 import { useSubgroupStore } from '~/stores/subgroupStore'
 
 const studentStore = useStudentStore()
@@ -244,9 +244,9 @@ const columns = [
   { accessorKey: 'id', header: 'ID' },
   { accessorKey: 'firstName', header: 'Ім’я' },
   { accessorKey: 'lastName', header: 'Прізвище' },
-  { id: 'group', header: 'Група' },
-  { id: 'subgroup', header: 'Підгрупа' },
-  { id: 'actions', header: 'Дії' }
+  { accessorKey: 'group', header: 'Група' },
+  // { accessorKey: 'subgroup', header: 'Підгрупа' },
+  { accessorKey: 'actions', header: 'Дії' }
 ]
 
 const students = computed(() => Array.isArray(studentStore.students) ? studentStore.students : [])

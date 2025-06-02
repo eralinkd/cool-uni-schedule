@@ -26,7 +26,7 @@ export const useGroupStore = defineStore('group', () => {
 
       return {
         ...group,
-        department: departments.find(dept => dept.id === group.departmentId) || null,
+        department: departments.find(dept => dept.id === group.department) || null,
         subgroups
       }
     })

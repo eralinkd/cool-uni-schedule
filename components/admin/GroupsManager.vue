@@ -14,7 +14,7 @@
       :loading="loading"
     >
       <template #department-cell="{ row }">
-        {{ row.original.department?.name || '-' }}
+        {{ row.original.department.name || '-' }}
       </template>
       <template #capacity-cell="{ row }">
         {{ row.original.capacity }}
@@ -183,9 +183,9 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
-import { useGroupStore } from '~/stores/groupStore'
+import { computed, onMounted, ref } from 'vue'
 import { useDepartmentStore } from '~/stores/departmentStore'
+import { useGroupStore } from '~/stores/groupStore'
 
 const groupStore = useGroupStore()
 const departmentStore = useDepartmentStore()
@@ -193,9 +193,9 @@ const departmentStore = useDepartmentStore()
 const columns = [
   { accessorKey: 'id', header: 'ID' },
   { accessorKey: 'name', header: 'Назва' },
-  { id: 'department', header: 'Кафедра' },
-  { id: 'capacity', header: 'Місткість' },
-  { id: 'actions', header: 'Дії' }
+  { accessorKey: 'department', header: 'Кафедра' },
+  { accessorKey: 'capacity', header: 'Місткість' },
+  { accessorKey: 'actions', header: 'Дії' }
 ]
 
 const groups = computed(() => {

@@ -20,8 +20,8 @@ export const useStudentStore = defineStore('student', () => {
 
     return raw.map(st => ({
       ...st,
-      group: groupStore.groups.find(g => g.id === st.groupId) || null,
-      subgroup: subgroupStore.subgroups.find(s => s.id === st.subgroupId) || null
+      group: groupStore.groups.find(g => g.id === st.group) || null,
+      subgroup: subgroupStore.subgroups.find(s => s.id === st.subgroup) || null
     }))
   }
 
