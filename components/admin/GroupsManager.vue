@@ -1,11 +1,9 @@
+<!-- components/admin/GroupsManager.vue -->
 <template>
   <div>
     <div class="flex justify-between items-center mb-4">
       <h2 class="text-xl font-semibold">Управління групами</h2>
-      <UButton
-        color="primary"
-        @click="openCreateModal"
-      >
+      <UButton color="primary" @click="openCreateModal">
         Додати групу
       </UButton>
     </div>
@@ -17,6 +15,9 @@
     >
       <template #department-cell="{ row }">
         {{ row.original.department?.name || '-' }}
+      </template>
+      <template #capacity-cell="{ row }">
+        {{ row.original.capacity }}
       </template>
       <template #actions-cell="{ row }">
         <div class="flex gap-2">
@@ -71,8 +72,8 @@
                   Номер групи
                 </label>
                 <UInput
-                  v-model="form.number"
-                  placeholder="Введіть номер групи"
+                  v-model="form.name"
+                  placeholder="Введіть назву групи"
                   required
                 />
               </div>
@@ -96,6 +97,18 @@
                     {{ dept.label }}
                   </option>
                 </select>
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">
+                  Місткість
+                </label>
+                <UInput
+                  v-model.number="form.capacity"
+                  type="number"
+                  min="1"
+                  placeholder="Введіть місткість"
+                  required
+                />
               </div>
             </div>
           </form>
@@ -133,9 +146,7 @@
           @click.stop
         >
           <div class="flex items-center justify-between p-4 border-b">
-            <h3 class="text-lg font-semibold">
-              Підтвердження видалення
-            </h3>
+            <h3 class="text-lg font-semibold">Підтвердження видалення</h3>
             <UButton
               color="gray"
               variant="ghost"
@@ -143,13 +154,12 @@
               @click="closeDeleteModal"
             />
           </div>
-
           <div class="p-4">
             <p>
-              Ви впевнені, що хочете видалити групу "{{ selectedGroup?.number }}"?
+              Ви впевнені, що хочете видалити групу
+              "{{ selectedGroup?.name }}"?
             </p>
           </div>
-
           <div class="flex justify-end gap-3 p-4 border-t">
             <UButton
               color="gray"
@@ -173,30 +183,19 @@
 </template>
 
 <script setup>
+import { ref, computed, onMounted } from 'vue'
+import { useGroupStore } from '~/stores/groupStore'
+import { useDepartmentStore } from '~/stores/departmentStore'
+
 const groupStore = useGroupStore()
 const departmentStore = useDepartmentStore()
 
 const columns = [
-  {
-    accessorKey: 'id',
-    header: 'ID'
-  },
-  {
-    accessorKey: 'name',
-    header: 'Назва'
-  },
-  {
-    id: 'department',
-    header: 'Кафедра'
-  },
-  {
-    accessorKey: 'course',
-    header: 'Курс'
-  },
-  {
-    id: 'actions',
-    header: 'Дії'
-  }
+  { accessorKey: 'id', header: 'ID' },
+  { accessorKey: 'name', header: 'Назва' },
+  { id: 'department', header: 'Кафедра' },
+  { id: 'capacity', header: 'Місткість' },
+  { id: 'actions', header: 'Дії' }
 ]
 
 const groups = computed(() => {
@@ -205,14 +204,10 @@ const groups = computed(() => {
 })
 const loading = computed(() => groupStore.loading)
 
-// Department options for select
 const departmentOptions = computed(() => {
-  const departments = departmentStore.departments
-  if (!Array.isArray(departments)) return []
-  return departments.map(dept => ({
-    label: dept.name,
-    value: dept.id
-  }))
+  const deps = departmentStore.departments
+  if (!Array.isArray(deps)) return []
+  return deps.map(d => ({ label: d.name, value: d.id }))
 })
 
 // Modal state
@@ -224,17 +219,14 @@ const submitting = ref(false)
 const deleting = ref(false)
 
 const form = ref({
-  number: '',
-  departmentId: null
+  name: '',
+  departmentId: null,
+  capacity: null
 })
 
-// Methods
 const openCreateModal = () => {
   isEditing.value = false
-  form.value = {
-    number: '',
-    departmentId: null
-  }
+  form.value = { name: '', departmentId: null, capacity: null }
   isModalOpen.value = true
 }
 
@@ -242,18 +234,16 @@ const openEditModal = (group) => {
   isEditing.value = true
   selectedGroup.value = group
   form.value = {
-    number: group.name,
-    departmentId: group.department?.id
+    name: group.name,
+    departmentId: group.department?.id || null,
+    capacity: group.capacity
   }
   isModalOpen.value = true
 }
 
 const closeModal = () => {
   isModalOpen.value = false
-  form.value = {
-    number: '',
-    departmentId: null
-  }
+  form.value = { name: '', departmentId: null, capacity: null }
   selectedGroup.value = null
 }
 
@@ -268,20 +258,25 @@ const closeDeleteModal = () => {
 }
 
 const handleSubmit = async() => {
-  if (!form.value.number.trim()) {
-    console.error('Number is required')
+  if (!form.value.name.trim() || !form.value.departmentId || !form.value.capacity) {
+    console.error('Всі поля обов’язкові')
     return
   }
-
   submitting.value = true
   try {
     if (isEditing.value) {
-      await groupStore.updateGroup(selectedGroup.value.id, form.value)
-      console.log('Group updated successfully')
+      await groupStore.updateGroup(selectedGroup.value.id, {
+        number: form.value.name,
+        departmentId: form.value.departmentId,
+        capacity: form.value.capacity
+      })
     }
     else {
-      await groupStore.createGroup(form.value)
-      console.log('Group created successfully')
+      await groupStore.createGroup({
+        number: form.value.name,
+        departmentId: form.value.departmentId,
+        capacity: form.value.capacity
+      })
     }
     closeModal()
   }
@@ -297,7 +292,6 @@ const handleDelete = async() => {
   deleting.value = true
   try {
     await groupStore.removeGroup(selectedGroup.value.id)
-    console.log('Group deleted successfully')
     closeDeleteModal()
   }
   catch (error) {
@@ -307,4 +301,9 @@ const handleDelete = async() => {
     deleting.value = false
   }
 }
+
+onMounted(async() => {
+  await departmentStore.fetchDepartments()
+  await groupStore.fetchGroups()
+})
 </script>

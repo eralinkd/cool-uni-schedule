@@ -1,47 +1,42 @@
+// все вызовы 1-в-1 со swagger
 export const useScheduleApi = () => {
   const { $api } = useNuxtApp()
 
-  const getSchedule = async(id) => {
-    const response = await $api.get(`/api/schedules/${id}`)
-    return response
-  }
+  /* --- CRUD --- */
+  const getAllEntries = async() => (await $api.get('/api/schedule')).data
+  const getEntry = async id => (await $api.get(`/api/schedule/${id}`)).data
+  const createEntry = async dto => (await $api.post('/api/schedule', dto)).data
+  const updateEntry = async(id, dto) =>
+    (await $api.put(`/api/schedule/${id}`, dto)).data
+  const deleteEntry = async id =>
+    (await $api.delete(`/api/schedule/${id}`)).data
 
-  const putSchedule = async(id, data) => {
-    const response = await $api.put(`/api/schedules/${id}`, data)
-    return response
-  }
+  /* --- фильтры / helper-ручки --- */
+  const filter = async(p = {}) =>
+    (await $api.get('/api/schedule/filter', { params: p })).data
 
-  const deleteSchedule = async(id) => {
-    const response = await $api.delete(`/api/schedules/${id}`)
-    return response
-  }
+  const suggestRoomsForGroup = async({ groupId, date, startTime, endTime }) =>
+    (await $api.get('/api/schedule/suggest-rooms-for-group', { params: {
+      groupId, date, startTime, endTime
+    } })).data
 
-  const postSchedule = async(data) => {
-    const response = await $api.post('/api/schedule', data)
-    return response
-  }
+  const suggestRoomsForSubgroup = async({ subgroupId, date, startTime, endTime }) =>
+    (await $api.get('/api/schedule/suggest-rooms-for-subgroup', { params: {
+      subgroupId, date, startTime, endTime
+    } })).data
 
-  const getScheduleFilter = async(data) => {
-    const response = await $api.get('/api/schedule/filter', data)
-    return response
-  }
+  const getAvailableProfessors = async({ subjectId, date, startTime, endTime }) =>
+    (await $api.get('/api/schedule/available-professors', { params: {
+      subjectId, date, startTime, endTime
+    } })).data
 
-  const getScheduleAvailableRooms = async(data) => {
-    const response = await $api.get('/api/schedule/available-rooms', data)
-    return response
-  }
+  const getAvailableRooms = async p =>
+    (await $api.get('/api/schedule/available-rooms', { params: p })).data
 
-  const getScheduleAvailableProfessors = async(data) => {
-    const response = await $api.get('/api/schedule/available-professors', data)
-    return response
-  }
-
-  return { getSchedule,
-    putSchedule,
-    deleteSchedule,
-    postSchedule,
-    getScheduleFilter,
-    getScheduleAvailableRooms,
-    getScheduleAvailableProfessors
+  return {
+    getAllEntries, getEntry, createEntry, updateEntry, deleteEntry,
+    filter,
+    suggestRoomsForGroup, suggestRoomsForSubgroup,
+    getAvailableProfessors, getAvailableRooms
   }
 }

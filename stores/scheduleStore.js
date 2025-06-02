@@ -1,100 +1,49 @@
 import { useScheduleApi } from '~/api/scheduleApi'
-import { useShowNotivue } from '~/composables/useNotivue.js'
+import { useShowNotivue } from '~/composables/useNotivue'
 
 export const useScheduleStore = defineStore('schedule', () => {
   const { $loader } = useNuxtApp()
   const { showNotivue } = useShowNotivue()
-  const {
-    getSchedule,
-    postSchedule,
-    putSchedule,
-    deleteSchedule,
-    getScheduleFilter,
-    getScheduleAvailableRooms,
-    getScheduleAvailableProfessors
-  } = useScheduleApi()
+  const api = useScheduleApi()
 
-  const scheduleEntries = ref([])
-  const scheduleEntry = ref({})
-  const availableRooms = ref([])
-  const availableProfessors = ref([])
+  const entries = ref([]) // весь массив ScheduleEntry
   const loading = ref(false)
 
-  // Преобразование данных расписания для отображения в таблице
-  const scheduleDataForTable = computed(() => {
-    const data = {}
-
-    // Проверяем, что scheduleEntries.value является массивом
-    if (!Array.isArray(scheduleEntries.value)) {
-      console.warn('scheduleEntries is not an array:', scheduleEntries.value)
-      return data
-    }
-
-    scheduleEntries.value.forEach((entry) => {
-      // Дополнительная проверка, что entry существует
-      if (!entry) return
-
-      // Получаем день недели из даты или используем dayOfWeek поле
-      const dayOfWeek = entry.dayOfWeek || 1 // По умолчанию понедельник
-
-      // Формируем ключи для каждой подгруппы
-      entry.subgroups?.forEach((subgroup) => {
-        const key = `day-${dayOfWeek}-slot-${getTimeSlotId(entry.startTime)}-group-${subgroup.group.id}-subgroup-${subgroup.id}`
-
-        data[key] = {
-          id: entry.id,
-          subject: entry.subject?.name || '',
-          professor: entry.professor
-            ? `${entry.professor.firstName} ${entry.professor.lastName}`
-            : '',
-          room: entry.rooms?.[0]?.name || '',
-          dates: entry.dates?.map(d => d.date).join(', ') || '',
-          platform: entry.isOnline ? entry.onlineLink : '',
-          type: entry.type,
-          isOnline: entry.isOnline
+  /* --- helpers: преобразуем в map «day-slot-group-sub» → payload,
+           чтобы ре-использовать существующие ScheduleTable-компоненты  --- */
+  const flatMap = computed(() => {
+    const m = {}
+    for (const e of entries.value) {
+      // берём первую дату – в UI мы всё равно фильтруем неделей/днём
+      const dateObj = Array.isArray(e.dates) && e.dates.length ? e.dates[0] : null
+      const day = dateObj ? (new Date(dateObj.date).getDay()) : null // 0-6
+      const slotId = e.type // грубая заглушка
+      for (const g of e.groups ?? []) {
+        for (const sg of (e.subgroups?.length ? e.subgroups : [{ id: null }])) {
+          const key = `day-${day}-slot-${slotId}-group-${g.id}-subgroup-${sg.id || 0}`
+          m[key] = {
+            subject: e.subjectName, // back-доописка
+            professor: e.professorName,
+            room: (e.rooms?.[0]?.name) || '',
+            isOnline: e.isOnline,
+            onlineLink: e.onlineLink
+          }
         }
-      })
-    })
-
-    return data
+      }
+    }
+    return m
   })
 
-  // Получение ID временного слота по времени начала
-  const getTimeSlotId = (startTime) => {
-    const hour = startTime.hour
-    const minute = startTime.minute
-
-    // Маппинг времени на ID слотов (пример)
-    if (hour === 9 && minute === 0) return 1
-    if (hour === 10 && minute === 30) return 2
-    if (hour === 12 && minute === 10) return 3
-    if (hour === 13 && minute === 40) return 4
-    if (hour === 15 && minute === 10) return 5
-
-    return 0
-  }
-
-  const fetchScheduleByFilter = async(filterData) => {
+  /* --- CRUD calls --- */
+  const fetchAll = async() => {
     $loader.show()
     loading.value = true
     try {
-      const response = await getScheduleFilter(filterData)
-
-      // Проверяем, что response является массивом
-      if (Array.isArray(response)) {
-        scheduleEntries.value = response
-      }
-      else {
-        console.warn('Schedule API returned non-array data:', response)
-        scheduleEntries.value = []
-      }
-
-      return scheduleEntries.value
+      entries.value = await api.getAllEntries()
     }
-    catch (error) {
-      showNotivue(true, 'Failed to load schedule')
-      console.error('Error loading schedule:', error)
-      scheduleEntries.value = []
+    catch (e) {
+      console.log(e)
+      showNotivue(true, 'Не вдалося завантажити розклад')
     }
     finally {
       $loader.hide()
@@ -102,107 +51,67 @@ export const useScheduleStore = defineStore('schedule', () => {
     }
   }
 
-  const fetchScheduleEntry = async(id) => {
+  const create = async(dto) => {
     $loader.show()
     try {
-      const response = await getSchedule(id)
-      scheduleEntry.value = response
-      return response
+      await api.createEntry(dto)
+      await fetchAll()
+      showNotivue(false, 'Заняття створено')
     }
-    catch (error) {
-      showNotivue(true, 'Failed to load schedule entry')
-      console.error('Error loading schedule entry:', error)
+    catch (e) {
+      showNotivue(true, 'Помилка створення')
+      throw e
     }
     finally {
       $loader.hide()
     }
   }
 
-  const createScheduleEntry = async(data) => {
+  const update = async(id, dto) => {
     $loader.show()
     try {
-      const response = await postSchedule(data)
-      showNotivue(false, 'Schedule entry created successfully')
-      return response
+      await api.updateEntry(id, dto) // PUT /api/schedule/{id}
+      await fetchAll() // перезагружаем список
+      showNotivue(false, 'Заняття оновлено')
     }
-    catch (error) {
-      showNotivue(true, 'Failed to create schedule entry')
-      console.error('Error creating schedule entry:', error)
-      throw error
+    catch (e) {
+      showNotivue(true, 'Помилка оновлення заняття')
+      console.error(e)
+      throw e // чтобы компонент-вызыватель міг відреагувати
     }
     finally {
       $loader.hide()
     }
   }
 
-  const updateScheduleEntry = async(id, data) => {
+  /** Видалити заняття */
+  const remove = async(id) => {
     $loader.show()
     try {
-      const response = await putSchedule(id, data)
-      showNotivue(false, 'Schedule entry updated successfully')
-      return response
+      await api.deleteEntry(id) // DELETE /api/schedule/{id}
+      await fetchAll()
+      showNotivue(false, 'Заняття видалено')
     }
-    catch (error) {
-      showNotivue(true, 'Failed to update schedule entry')
-      console.error('Error updating schedule entry:', error)
-      throw error
+    catch (e) {
+      showNotivue(true, 'Помилка видалення заняття')
+      console.error(e)
+      throw e
     }
     finally {
       $loader.hide()
     }
   }
 
-  const removeScheduleEntry = async(id) => {
-    $loader.show()
-    try {
-      await deleteSchedule(id)
-      showNotivue(false, 'Schedule entry deleted successfully')
-    }
-    catch (error) {
-      showNotivue(true, 'Failed to delete schedule entry')
-      console.error('Error deleting schedule entry:', error)
-      throw error
-    }
-    finally {
-      $loader.hide()
-    }
-  }
+  /* --- фильтрация для UI --- */
+  const byGroup = groupId =>
+    entries.value.filter(e => e.groups?.some(g => g.id === groupId))
 
-  const fetchAvailableRooms = async(data) => {
-    try {
-      const response = await getScheduleAvailableRooms(data)
-      availableRooms.value = response
-      return response
-    }
-    catch (error) {
-      console.error('Error loading available rooms:', error)
-    }
-  }
-
-  const fetchAvailableProfessors = async(data) => {
-    try {
-      const response = await getScheduleAvailableProfessors(data)
-      availableProfessors.value = response
-      return response
-    }
-    catch (error) {
-      console.error('Error loading available professors:', error)
-    }
-  }
+  const byProfessor = profId =>
+    entries.value.filter(e => e.professor === profId)
 
   return {
-    scheduleEntries,
-    scheduleEntry,
-    scheduleDataForTable,
-    availableRooms,
-    availableProfessors,
-    loading,
-    fetchScheduleByFilter,
-    fetchScheduleEntry,
-    createScheduleEntry,
-    updateScheduleEntry,
-    removeScheduleEntry,
-    fetchAvailableRooms,
-    fetchAvailableProfessors
+    entries, flatMap, loading,
+    fetchAll, create, update, remove,
+    byGroup, byProfessor
   }
 })

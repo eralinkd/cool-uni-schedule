@@ -11,20 +11,38 @@ export const useDepartmentApi = () => {
     return response.data
   }
 
+  const postDepartment = async(data) => {
+    const response = await $api.post(
+      '/api/admin/departments',
+      null,
+      {
+        params: { name: data.name }
+      }
+    )
+    return response.data
+  }
+
   const putDepartment = async(id, data) => {
-    const response = await $api.put(`/api/department/${id}`, data)
+    const response = await $api.put(
+      `/api/admin/departments/${id}`,
+      null,
+      {
+        params: { name: data.name }
+      }
+    )
     return response.data
   }
 
   const deleteDepartment = async(id) => {
-    const response = await $api.delete(`/api/department/${id}`)
+    const response = await $api.delete(`/api/admin/departments/${id}`)
     return response.data
   }
 
-  const postDepartment = async(data) => {
-    const response = await $api.post('/api/department', data)
-    return response.data
+  return {
+    getDepartments,
+    getDepartment,
+    postDepartment,
+    putDepartment,
+    deleteDepartment
   }
-
-  return { getDepartments, putDepartment, deleteDepartment, postDepartment, getDepartment }
 }

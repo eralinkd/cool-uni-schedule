@@ -1,30 +1,17 @@
 export const useStudentApi = () => {
   const { $api } = useNuxtApp()
 
-  const getStudents = async() => {
-    const response = await $api.get('/api/students')
-    return response
-  }
+  const getStudents = async() => (await $api.get('/api/student')).data
+  const getStudent = async id => (await $api.get(`/api/student/${id}`)).data
 
-  const getStudent = async(id) => {
-    const response = await $api.get(`/api/students/${id}`)
-    return response
-  }
+  const postStudent = async p => (await $api.post('/api/admin/students', null, { params: p })).data
 
-  const putStudent = async(id, data) => {
-    const response = await $api.put(`/api/students/${id}`, data)
-    return response
-  }
+  const putStudent = async(
+    id,
+    p) => (await $api.put(`/api/admin/students/${id}`, null, { params: p })).data
 
-  const deleteStudent = async(id) => {
-    const response = await $api.delete(`/api/students/${id}`)
-    return response
-  }
+  const deleteStudent = async id =>
+    (await $api.delete(`/api/admin/students/${id}`)).data
 
-  const postStudent = async(data) => {
-    const response = await $api.post('/api/student', data)
-    return response
-  }
-
-  return { getStudents, putStudent, deleteStudent, postStudent, getStudent }
+  return { getStudents, getStudent, postStudent, putStudent, deleteStudent }
 }

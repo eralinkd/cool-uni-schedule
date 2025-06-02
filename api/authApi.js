@@ -4,13 +4,19 @@ export const useAuthApi = () => {
   const config = useRuntimeConfig()
 
   const postLogin = async(data) => {
-    const response = await axios.post(`${config.public.API_URL}/api/auth/login`, data, {
-      headers: {
-        'Content-Type': 'application/json'
-      }
-    })
-    return response
+    return await axios.post(
+      `${config.public.API_URL}/api/auth/login`,
+      data,
+      { headers: { 'Content-Type': 'application/json' } }
+    )
   }
 
-  return { postLogin }
+  const getMe = async(token) => {
+    return await axios.get(
+      `${config.public.API_URL}/api/auth/getMe`,
+      { params: { token } }
+    )
+  }
+
+  return { postLogin, getMe }
 }

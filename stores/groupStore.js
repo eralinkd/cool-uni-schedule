@@ -141,13 +141,6 @@ export const useGroupStore = defineStore('group', () => {
     return groups.value.filter(g => g.course === course)
   }
 
-  const getGroupsByDepartmentAndCourse = (departmentId, course) => {
-    return groups.value.filter(g =>
-      g.departmentId === departmentId
-      && g.course === course
-    )
-  }
-
   return {
     groups,
     group,
@@ -158,7 +151,6 @@ export const useGroupStore = defineStore('group', () => {
     updateGroup,
     removeGroup,
     getGroupsByDepartment,
-    getGroupsByCourse,
-    getGroupsByDepartmentAndCourse
+    getGroupsByCourse
   }
 })

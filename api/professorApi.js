@@ -11,20 +11,50 @@ export const useProfessorApi = () => {
     return response.data
   }
 
+  const postProfessor = async(data) => {
+    const params = {
+      username: data.username,
+      password: data.password,
+      firstName: data.firstName,
+      lastName: data.lastName,
+      departmentIds: data.departmentId,
+      rate: data.rate
+    }
+    if (data.onlineLink) {
+      params.onlineLink = data.onlineLink
+    }
+
+    const response = await $api.post(
+      '/api/admin/professors',
+      null,
+      { params }
+    )
+    return response.data
+  }
+
   const putProfessor = async(id, data) => {
-    const response = await $api.put(`/api/professor/${id}`, data)
+    const params = {
+      firstName: data.firstName,
+      lastName: data.lastName,
+      departmentIds: data.departmentId,
+      rate: data.rate
+    }
+    if (data.onlineLink) {
+      params.onlineLink = data.onlineLink
+    }
+
+    const response = await $api.put(
+      `/api/admin/professors/${id}`,
+      null,
+      { params }
+    )
     return response.data
   }
 
   const deleteProfessor = async(id) => {
-    const response = await $api.delete(`/api/professor/${id}`)
+    const response = await $api.delete(`/api/admin/professors/${id}`)
     return response.data
   }
 
-  const postProfessor = async(data) => {
-    const response = await $api.post('/api/professor', data)
-    return response.data
-  }
-
-  return { getProfessors, putProfessor, deleteProfessor, postProfessor, getProfessor }
+  return { getProfessors, getProfessor, postProfessor, putProfessor, deleteProfessor }
 }

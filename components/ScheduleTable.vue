@@ -48,11 +48,11 @@ const emit = defineEmits(['cell-select', 'cell-edit', 'drag-selection'])
 
 // Дни недели
 const weekDays = [
-  { id: 1, name: 'Понедельник' },
-  { id: 2, name: 'Вторник' },
-  { id: 3, name: 'Среда' },
-  { id: 4, name: 'Четверг' },
-  { id: 5, name: 'Пятница' }
+  { id: 1, name: 'Понеділок' },
+  { id: 2, name: 'Вівторок' },
+  { id: 3, name: 'Середа' },
+  { id: 4, name: 'Четвер' },
+  { id: 5, name: 'Пʼятница' }
 ]
 
 const handleDragSelection = (selection) => {

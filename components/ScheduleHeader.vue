@@ -50,19 +50,6 @@
             @update:model-value="$emit('department-change', $event)"
           />
         </div>
-
-        <div class="flex items-center gap-2">
-          <label class="text-gray-600">
-            Курс:
-          </label>
-          <USelect
-            :model-value="selectedCourse"
-            :items="courseOptions"
-            size="sm"
-            class="w-24"
-            @update:model-value="$emit('course-change', $event)"
-          />
-        </div>
       </div>
     </div>
 
@@ -142,15 +129,6 @@ const selectedDepartment = computed(() => {
 const selectedDepartmentName = computed(() => {
   return selectedDepartment.value?.name || ''
 })
-
-const courseOptions = [
-  { label: '1 курс', value: 1 },
-  { label: '2 курс', value: 2 },
-  { label: '3 курс', value: 3 },
-  { label: '4 курс', value: 4 },
-  { label: '5 курс', value: 5 },
-  { label: '6 курс (магістратура)', value: 6 }
-]
 
 // Специальности формируем из департаментов
 const specialties = computed(() => {

@@ -9,5 +9,5 @@
 </template>
 
 <script setup>
-import { Notification, Notivue } from 'notivue';
+import { Notification, Notivue } from 'notivue'
 </script>

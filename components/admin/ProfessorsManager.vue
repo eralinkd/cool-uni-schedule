@@ -1,11 +1,9 @@
+<!-- components/admin/ProfessorsManager.vue -->
 <template>
   <div>
     <div class="flex justify-between items-center mb-4">
       <h2 class="text-xl font-semibold">Управління викладачами</h2>
-      <UButton
-        color="primary"
-        @click="openCreateModal"
-      >
+      <UButton color="primary" @click="openCreateModal">
         Додати викладача
       </UButton>
     </div>
@@ -15,8 +13,11 @@
       :columns="columns"
       :loading="loading"
     >
+      <template #rate-cell="{ row }">
+        {{ row.original.rate }}
+      </template>
       <template #departments-cell="{ row }">
-        {{ row.original.departments?.map(d => d.name).join(', ') || '-' }}
+        {{ row.original.departments?.map(d => d).join(', ') || '-' }}
       </template>
       <template #actions-cell="{ row }">
         <div class="flex gap-2">
@@ -66,38 +67,8 @@
             @click.stop
           >
             <div class="space-y-4">
-              <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">
-                  Імя
-                </label>
-                <UInput
-                  v-model="form.firstName"
-                  placeholder="Введіть імя"
-                  required
-                />
-              </div>
-              <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">
-                  Фамілія
-                </label>
-                <UInput
-                  v-model="form.lastName"
-                  placeholder="Введіть фамілію"
-                  required
-                />
-              </div>
-              <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">
-                  Email
-                </label>
-                <UInput
-                  v-model="form.email"
-                  type="email"
-                  placeholder="Введіть email"
-                  required
-                />
-              </div>
-              <div>
+              <!-- Username & Password (только при создании) -->
+              <div v-if="!isEditing">
                 <label class="block text-sm font-medium text-gray-700 mb-1">
                   Логін
                 </label>
@@ -105,6 +76,47 @@
                   v-model="form.username"
                   placeholder="Введіть логін"
                   required
+                />
+              </div>
+              <div v-if="!isEditing">
+                <label class="block text-sm font-medium text-gray-700 mb-1">
+                  Пароль
+                </label>
+                <UInput
+                  v-model="form.password"
+                  type="password"
+                  placeholder="Введіть пароль"
+                  required
+                />
+              </div>
+
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">
+                  Ім’я
+                </label>
+                <UInput
+                  v-model="form.firstName"
+                  placeholder="Введіть ім’я"
+                  required
+                />
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">
+                  Прізвище
+                </label>
+                <UInput
+                  v-model="form.lastName"
+                  placeholder="Введіть прізвище"
+                  required
+                />
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">
+                  Міський посилання (опційно)
+                </label>
+                <UInput
+                  v-model="form.onlineLink"
+                  placeholder="Вставте посилання (Zoom тощо)"
                 />
               </div>
               <div>
@@ -119,7 +131,26 @@
                   <option value="">
                     Оберіть кафедру
                   </option>
+                  <option
+                    v-for="dept in departmentOptions"
+                    :key="dept.value"
+                    :value="dept.value"
+                  >
+                    {{ dept.label }}
+                  </option>
                 </select>
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">
+                  Рейтинг
+                </label>
+                <UInput
+                  v-model.number="form.rate"
+                  type="number"
+                  min="0"
+                  placeholder="Введіть рейтинг"
+                  required
+                />
               </div>
             </div>
           </form>
@@ -157,9 +188,7 @@
           @click.stop
         >
           <div class="flex items-center justify-between p-4 border-b">
-            <h3 class="text-lg font-semibold">
-              Підтвердження видалення
-            </h3>
+            <h3 class="text-lg font-semibold">Підтвердження видалення</h3>
             <UButton
               color="gray"
               variant="ghost"
@@ -167,14 +196,12 @@
               @click="closeDeleteModal"
             />
           </div>
-
           <div class="p-4">
             <p>
               Ви впевнені, що хочете видалити викладача
               "{{ selectedProfessor?.firstName }} {{ selectedProfessor?.lastName }}"?
             </p>
           </div>
-
           <div class="flex justify-end gap-3 p-4 border-t">
             <UButton
               color="gray"
@@ -198,34 +225,20 @@
 </template>
 
 <script setup>
+import { ref, computed, onMounted } from 'vue'
+import { useProfessorStore } from '~/stores/professorStore'
+import { useDepartmentStore } from '~/stores/departmentStore'
+
 const professorStore = useProfessorStore()
 const departmentStore = useDepartmentStore()
 
 const columns = [
-  {
-    accessorKey: 'id',
-    header: 'ID'
-  },
-  {
-    accessorKey: 'firstName',
-    header: 'Імя'
-  },
-  {
-    accessorKey: 'lastName',
-    header: 'Фамілія'
-  },
-  {
-    accessorKey: 'email',
-    header: 'Email'
-  },
-  {
-    id: 'departments',
-    header: 'Кафедри'
-  },
-  {
-    id: 'actions',
-    header: 'Дії'
-  }
+  { accessorKey: 'id', header: 'ID' },
+  { accessorKey: 'firstName', header: 'Ім’я' },
+  { accessorKey: 'lastName', header: 'Прізвище' },
+  { id: 'rate', header: 'Рейтинг' },
+  { id: 'departments', header: 'Кафедри' },
+  { id: 'actions', header: 'Дії' }
 ]
 
 const professors = computed(() => {
@@ -234,14 +247,10 @@ const professors = computed(() => {
 })
 const loading = computed(() => professorStore.loading)
 
-// Department options for select
 const departmentOptions = computed(() => {
-  const departments = departmentStore.departments
-  if (!Array.isArray(departments)) return []
-  return departments.map(dept => ({
-    label: dept.name,
-    value: dept.id
-  }))
+  const deps = departmentStore.departments
+  if (!Array.isArray(deps)) return []
+  return deps.map(d => ({ label: d.name, value: d.id }))
 })
 
 // Modal state
@@ -252,36 +261,43 @@ const selectedProfessor = ref(null)
 const submitting = ref(false)
 const deleting = ref(false)
 
+// Форма данных
 const form = ref({
+  username: '',
+  password: '',
   firstName: '',
   lastName: '',
-  email: '',
-  departmentId: '',
-  username: ''
+  onlineLink: '',
+  departmentId: null,
+  rate: null
 })
 
-// Methods
 const openCreateModal = () => {
   isEditing.value = false
   form.value = {
+    username: '',
+    password: '',
     firstName: '',
     lastName: '',
-    email: '',
-    departmentId: '',
-    username: ''
+    onlineLink: '',
+    departmentId: null,
+    rate: null
   }
   isModalOpen.value = true
 }
 
-const openEditModal = (professor) => {
+const openEditModal = (prof) => {
   isEditing.value = true
-  selectedProfessor.value = professor
+  selectedProfessor.value = prof
   form.value = {
-    firstName: professor.firstName,
-    lastName: professor.lastName,
-    email: professor.email,
-    departmentId: professor.department?.id || '',
-    username: professor.username || ''
+    // при редагуванні логін/пароль не потрібні
+    username: '',
+    password: '',
+    firstName: prof.firstName,
+    lastName: prof.lastName,
+    onlineLink: prof.onlineLink || '',
+    departmentId: prof.departments?.[0]?.id || null,
+    rate: prof.rate
   }
   isModalOpen.value = true
 }
@@ -289,17 +305,19 @@ const openEditModal = (professor) => {
 const closeModal = () => {
   isModalOpen.value = false
   form.value = {
+    username: '',
+    password: '',
     firstName: '',
     lastName: '',
-    email: '',
-    departmentId: '',
-    username: ''
+    onlineLink: '',
+    departmentId: null,
+    rate: null
   }
   selectedProfessor.value = null
 }
 
-const confirmDelete = (professor) => {
-  selectedProfessor.value = professor
+const confirmDelete = (prof) => {
+  selectedProfessor.value = prof
   isDeleteModalOpen.value = true
 }
 
@@ -309,20 +327,44 @@ const closeDeleteModal = () => {
 }
 
 const handleSubmit = async() => {
-  if (!form.value.firstName.trim() || !form.value.lastName.trim() || !form.value.email.trim()) {
-    console.error('Required fields are missing')
+  // Базова валідація
+  if (
+    !form.value.firstName.trim()
+    || !form.value.lastName.trim()
+    || !form.value.departmentId
+    || form.value.rate === null
+  ) {
+    console.error('Всі обов’язкові поля мають бути заповнені')
     return
   }
 
   submitting.value = true
   try {
     if (isEditing.value) {
-      await professorStore.updateProfessor(selectedProfessor.value.id, form.value)
-      console.log('Professor updated successfully')
+      await professorStore.updateProfessor(selectedProfessor.value.id, {
+        firstName: form.value.firstName,
+        lastName: form.value.lastName,
+        departmentId: form.value.departmentId,
+        rate: form.value.rate,
+        onlineLink: form.value.onlineLink || ''
+      })
     }
     else {
-      await professorStore.createProfessor(form.value)
-      console.log('Professor created successfully')
+      // При створенні обов’язкові: username, password
+      if (!form.value.username.trim() || !form.value.password) {
+        console.error('Логін і пароль обов’язкові при створенні')
+        submitting.value = false
+        return
+      }
+      await professorStore.createProfessor({
+        username: form.value.username,
+        password: form.value.password,
+        firstName: form.value.firstName,
+        lastName: form.value.lastName,
+        departmentId: form.value.departmentId,
+        rate: form.value.rate,
+        onlineLink: form.value.onlineLink || ''
+      })
     }
     closeModal()
   }
@@ -338,7 +380,6 @@ const handleDelete = async() => {
   deleting.value = true
   try {
     await professorStore.removeProfessor(selectedProfessor.value.id)
-    console.log('Professor deleted successfully')
     closeDeleteModal()
   }
   catch (error) {
@@ -349,11 +390,8 @@ const handleDelete = async() => {
   }
 }
 
-// Load initial data
 onMounted(async() => {
-  await Promise.all([
-    professorStore.fetchProfessors(),
-    departmentStore.fetchDepartments()
-  ])
+  await departmentStore.fetchDepartments()
+  await professorStore.fetchProfessors()
 })
 </script>
