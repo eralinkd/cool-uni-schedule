@@ -188,13 +188,6 @@ const rooms = computed(() => {
 })
 const loading = computed(() => roomStore.loading)
 
-const roomTypeOptions = [
-  { label: 'Лекционная', value: 'LECTURE' },
-  { label: 'Практическая', value: 'PRACTICE' },
-  { label: 'Лабораторная', value: 'LABORATORY' },
-  { label: 'Компьютерная', value: 'COMPUTER' }
-]
-
 // Modal state
 const isModalOpen = ref(false)
 const isDeleteModalOpen = ref(false)

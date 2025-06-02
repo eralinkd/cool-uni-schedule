@@ -97,26 +97,6 @@
                   </option>
                 </select>
               </div>
-              <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">
-                  Тип
-                </label>
-                <select
-                  v-model="form.type"
-                  class="w-full rounded-md border border-gray-300 px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                >
-                  <option value="">
-                    Выберите тип предмета
-                  </option>
-                  <option
-                    v-for="type in subjectTypeOptions"
-                    :key="type.value"
-                    :value="type.value"
-                  >
-                    {{ type.label }}
-                  </option>
-                </select>
-              </div>
             </div>
           </form>
 
@@ -236,9 +216,9 @@ const departmentOptions = computed(() => {
 })
 
 const subjectTypeOptions = [
-  { label: 'Лекция', value: 'LECTURE' },
+  { label: 'Лекція', value: 'LECTURE' },
   { label: 'Практика', value: 'PRACTICE' },
-  { label: 'Лабораторная', value: 'LABORATORY' }
+  { label: 'Лабораторна', value: 'LABORATORY' }
 ]
 
 // Modal state
